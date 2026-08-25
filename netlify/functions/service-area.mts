@@ -92,9 +92,11 @@ export default async (req: Request, _context: Context) => {
     tier: result.tier,
     travelFeeUsd: result.travelFeeUsd,
     message:
-      result.tier === 'core'
-        ? `Yes, we cover ${result.place}. It is about ${round(result.miles)} miles from our base in Puyallup and there is no travel fee.`
-        : `Yes, we cover ${result.place}, but it is about ${round(result.miles)} miles out, which adds a $${AREA.travelFeeUsd} travel fee to the job.`,
+      result.tier === 'extended'
+        ? `Yes, we cover ${result.place}, but it is about ${round(result.miles)} miles out, which adds a $${AREA.travelFeeUsd} travel fee to the job.`
+        : round(result.miles) < 1
+          ? `Yes, we cover ${result.place}. That is our home town, so there is no travel fee.`
+          : `Yes, we cover ${result.place}. It is about ${round(result.miles)} miles from our base in Puyallup and there is no travel fee.`,
     next: 'Ask what the problem is and when they need someone, then check availability.',
     business: { name: BUSINESS.name, disclosure: BUSINESS.disclosure },
   });
