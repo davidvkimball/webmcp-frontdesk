@@ -2,7 +2,7 @@
 
 A WebMCP entry for the OpenAI and Netlify challenge, due **Thursday 3 September, 1:00 PM PT**.
 
-**Read [PLAN.md](./PLAN.md) first.** It carries the strategy, the judging criteria, the verified API, the tool specs, the day-by-day schedule, and the open decisions. This file is only the working rules.
+**Read [PLAN.md](./PLAN.md) first.** [BUSINESS.md](./BUSINESS.md) holds every fact about the fictional business, and site copy and tool responses must both match it. It carries the strategy, the judging criteria, the verified API, the tool specs, the day-by-day schedule, and the open decisions. This file is only the working rules.
 
 ## What this is
 
