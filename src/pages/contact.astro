@@ -1,0 +1,144 @@
+---
+/**
+ * Contact page with Netlify Forms.
+ * The hidden form definition lives in Layout.astro for build-time detection.
+ * This is the user-facing interactive form.
+ *
+ * Honeypot field (bot-field) is visually hidden. Bots fill it, humans don't.
+ * form-name in the body tells Netlify which form definition to match.
+ */
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+
+const settings = await getEntry('settings', 'site');
+const { siteName } = settings.data;
+---
+
+<Layout title={`Contact | ${siteName}`}>
+  <section class="page-header">
+    <div class="container">
+      <h1>Contact Us</h1>
+      <p>We'd love to hear from you.</p>
+    </div>
+  </section>
+
+  <section class="page-content">
+    <div class="container contact-grid">
+      <form
+        name="contact"
+        method="POST"
+        data-netlify="true"
+        netlify-honeypot="bot-field"
+        action="/thank-you/"
+        class="contact-form"
+      >
+        <input type="hidden" name="form-name" value="contact" />
+
+        {/* Honeypot, hidden from real users */}
+        <p class="sr-only">
+          <label>Don't fill this out: <input name="bot-field" /></label>
+        </p>
+
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required autocomplete="name" />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="email" />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone <span class="optional">(optional)</span></label>
+          <input type="tel" id="phone" name="phone" autocomplete="tel" />
+        </div>
+
+        <div class="form-group">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" data-testid="button-contact-submit">
+          Send Message
+        </button>
+      </form>
+
+      <div class="contact-info">
+        <h3>Other Ways to Reach Us</h3>
+        <p>REPLACE_ME - add phone, email, address, hours, or a map embed here.</p>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-header {
+    padding: var(--space-3xl) 0 var(--space-xl);
+    background: var(--color-gray-50);
+    text-align: center;
+  }
+
+  .page-header p {
+    color: var(--color-gray-500);
+    font-size: 1.125rem;
+    margin-top: var(--space-sm);
+  }
+
+  .page-content {
+    padding: var(--space-3xl) 0;
+  }
+
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3xl);
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 768px) {
+    .contact-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-group {
+    margin-bottom: var(--space-lg);
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: var(--space-xs);
+    color: var(--color-gray-700);
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--color-gray-500);
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--color-gray-300);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    color: var(--color-gray-900);
+    background: var(--color-white);
+    transition: border-color var(--transition-fast);
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    border-color: var(--color-primary);
+  }
+
+  .contact-info h3 {
+    margin-bottom: var(--space-md);
+  }
+</style>

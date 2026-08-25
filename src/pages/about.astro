@@ -1,0 +1,42 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+
+const settings = await getEntry('settings', 'site');
+const { siteName } = settings.data;
+---
+
+<Layout title={`About | ${siteName}`}>
+  <section class="page-header">
+    <div class="container">
+      <h1>About Us</h1>
+      <p>Replace with your story.</p>
+    </div>
+  </section>
+
+  <section class="page-content">
+    <div class="container">
+      <p>This is a placeholder page. Edit <code>src/pages/about.astro</code> or wire it to a CMS collection for editable content.</p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-header {
+    padding: var(--space-3xl) 0 var(--space-xl);
+    background: var(--color-gray-50);
+    text-align: center;
+  }
+
+  .page-header p {
+    color: var(--color-gray-500);
+    font-size: 1.125rem;
+    margin-top: var(--space-sm);
+  }
+
+  .page-content {
+    padding: var(--space-3xl) 0;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+</style>

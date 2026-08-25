@@ -1,0 +1,31 @@
+{
+  "name": "clarks-creek-plumbing",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "sync": "astro sync",
+    "dev:netlify": "netlify dev"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.2.4",
+    "@astrojs/netlify": "^8.2.4",
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.2.6",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@netlify/functions": "^4.2.5",
+    "cross-env": "^7.0.3",
+    "typescript": "^5.8.0"
+  }
+}

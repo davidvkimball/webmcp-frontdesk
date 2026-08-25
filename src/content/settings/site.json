@@ -1,0 +1,19 @@
+{
+  "siteName": "Clarks Creek Plumbing",
+  "siteDescription": "Licensed plumbing for Puyallup and the surrounding Pierce County towns. Drains, water heaters, leaks and repipes. A fictional demonstration business built for the WebMCP challenge.",
+  "phone": "(253) 555-0142",
+  "header": {
+    "siteName": "Clarks Creek Plumbing",
+    "ctaLink": "/contact/",
+    "ctaLabel": "Request a visit",
+    "menu": [
+      { "label": "Services", "href": "/services/" },
+      { "label": "Service area", "href": "/service-area/" },
+      { "label": "About", "href": "/about/" },
+      { "label": "Contact", "href": "/contact/" }
+    ]
+  },
+  "footer": {
+    "copyright": "Clarks Creek Plumbing is a fictional demonstration business built for the WebMCP challenge. The tools on this site are real and working. The plumber is not."
+  }
+}

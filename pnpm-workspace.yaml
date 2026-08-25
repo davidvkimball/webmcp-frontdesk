@@ -1,0 +1,12 @@
+# pnpm 11+ requires explicit allowlisting of native build scripts. Sharp and
+# esbuild compile native binaries during install; without these settings the
+# install fails with ERR_PNPM_IGNORED_BUILDS. See pipeline §26.
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  sharp: true
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild
+  - sharp
+minimumReleaseAge: 240

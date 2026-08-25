@@ -1,0 +1,94 @@
+---
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+
+const settings = await getEntry('settings', 'site');
+const { siteName, header } = settings.data;
+---
+
+<Layout title={`Home | ${siteName}`}>
+  <section class="hero">
+    <div class="container">
+      <h1>Welcome to Your New Site</h1>
+      <p>This is the lilAgents Astro starter. Replace this content with your own.</p>
+      {header.ctaLink && (
+        <a href={header.ctaLink} class="btn btn-primary" data-testid="button-hero-cta">
+          {header.ctaLabel || 'Get Started'}
+        </a>
+      )}
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <h2>What We Do</h2>
+      <p>Add your services, features, or value propositions here.</p>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <div class="container">
+      <h2>Ready to Get Started?</h2>
+      <p>Replace with your call to action.</p>
+      <a href="/contact/" class="btn btn-primary" data-testid="button-cta-section">
+        Contact Us
+      </a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .hero {
+    padding: var(--space-4xl) 0;
+    background: var(--color-gray-50);
+    text-align: center;
+  }
+
+  .hero h1 {
+    margin-bottom: var(--space-md);
+  }
+
+  .hero p {
+    font-size: 1.125rem;
+    color: var(--color-gray-500);
+    max-width: 600px;
+    margin: 0 auto var(--space-xl);
+  }
+
+  .features {
+    padding: var(--space-4xl) 0;
+    text-align: center;
+  }
+
+  .features h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .cta-banner {
+    padding: var(--space-3xl) 0;
+    background: var(--color-primary);
+    color: var(--color-white);
+    text-align: center;
+  }
+
+  .cta-banner h2 {
+    color: var(--color-white);
+    margin-bottom: var(--space-sm);
+  }
+
+  .cta-banner p {
+    margin-bottom: var(--space-lg);
+    opacity: 0.9;
+  }
+
+  .cta-banner .btn-primary {
+    background: var(--color-white);
+    color: var(--color-primary);
+    border-color: var(--color-white);
+  }
+
+  .cta-banner .btn-primary:hover {
+    background: var(--color-gray-100);
+    border-color: var(--color-gray-100);
+  }
+</style>

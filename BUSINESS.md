@@ -43,19 +43,23 @@ A judge who calls that tool sees us being straight with them. That is worth more
 
 Base point is downtown Puyallup, 47.1854 N, -122.2929 W. `check_service_area` is straight-line distance from that point, which is pure math with no state and no API key.
 
-| Tier | Distance | Travel fee | Behaviour |
+| Tier | Straight-line distance | Travel fee | Behaviour |
 |---|---|---|---|
-| Core | 0 to 12 miles | none | Books normally |
-| Extended | 12 to 20 miles | $45 | Books, and the fee is stated up front in the tool response |
-| Outside | over 20 miles | n/a | Refuses, and names the nearest covered city with its distance |
+| Core | 0 to 10 miles | none | Books normally |
+| Extended | 10 to 17 miles | $45 | Books, and the fee is stated up front in the tool response |
+| Outside | over 17 miles | n/a | Refuses, and names the nearest covered city with its distance |
 
-**Core:** Puyallup, South Hill, Sumner, Edgewood, Milton, Fife, Bonney Lake, Orting, Tacoma, Graham, Spanaway, Auburn
-**Extended:** Federal Way, Lakewood, Kent, Gig Harbor, Enumclaw, University Place, Steilacoom, Buckley
-**Outside:** Seattle, Bellevue, Renton, Olympia, Everett, and anything further
+**These are straight-line miles, computed, not estimated.** Road distance runs roughly 1.3x to 1.5x higher, which is why the bands look tighter than a drive time would suggest. The earlier draft of this file used 12 and 20 miles based on road distances and was wrong: Federal Way is 9.5 straight-line miles from Puyallup, not the 14 the road sign says, which would have put it in the wrong band.
 
-The refusal is a real answer, not an error:
+**Core, all within 10 miles:** Puyallup, Sumner, South Hill, Edgewood, Milton, Fife, Bonney Lake, Orting, Tacoma, Spanaway, Auburn, Graham, Federal Way
+**Extended, 10 to 17 miles:** Lakewood, University Place, Buckley, Kent, Enumclaw, Steilacoom, Gig Harbor
+**Outside:** Burien, Renton, Eatonville, Seattle, Bellevue, Olympia, Everett, and anything further
 
-> Outside our service area. The nearest city we cover is Federal Way, about 22 miles south of that address. Travel there would add a $45 fee.
+There is no geocoding API. `check_service_area` matches a ZIP or a city name against a lookup table in `src/lib/business.ts` and measures great-circle distance from the base point. An address it cannot place gets an honest refusal asking for a city or ZIP, rather than a confident wrong answer. An API key here would be a dependency, a failure mode and a rate limit, in the one tool that gets called first in nearly every chain.
+
+The refusal is a real answer, not an error, and it names the nearest covered town measured **from the customer**, not from us:
+
+> Seattle is about 29 miles from Puyallup, which is outside our service area. The nearest place we do cover is Kent, roughly 16 miles from there.
 
 ## 4. Hours
 

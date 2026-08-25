@@ -1,0 +1,100 @@
+---
+/**
+ * Layout: wraps every page.
+ * Includes: BaseHead, Header, Footer, hidden Netlify form defs,
+ * universal CTA click tracker.
+ */
+import BaseHead from '@components/BaseHead.astro';
+import Header from '@components/Header.astro';
+import Footer from '@components/Footer.astro';
+import WebMCP from '@components/WebMCP.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+  noIndex?: boolean;
+  type?: 'website' | 'article';
+  publishDate?: string;
+}
+
+const props = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <BaseHead {...props}>
+      <slot name="head" slot="head" />
+    </BaseHead>
+
+  </head>
+  <body>
+    {/* Hidden form definitions for Netlify build-time detection.
+        Mirror every form name + field names used by interactive components.
+        See §23 in SKILL.md for details. */}
+    <form name="contact" netlify netlify-honeypot="bot-field" hidden>
+      <input name="bot-field" />
+      <input name="name" />
+      <input name="email" />
+      <input name="phone" />
+      <input name="message" />
+    </form>
+
+    <WebMCP />
+
+    <Header />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+
+
+    {/*
+      Universal CTA click tracker.
+      Fires GA4 generate_lead on any element with a data-testid
+      attribute starting with "button-". Placement is derived from
+      the testid (e.g. button-hero-cta → "hero").
+
+      This works out of the box with the starter's existing buttons.
+      When building a real site, either repurpose this to track the
+      actual CTAs, or remove it if not needed.
+    */}
+    <script is:inline>
+      (function() {
+        document.addEventListener('click', function(e) {
+          var el = e.target.closest('[data-testid^="button-"]');
+          if (!el) return;
+
+          var testId = el.getAttribute('data-testid') || '';
+          var parts = testId.replace('button-', '').split('-');
+          var placement = parts[0] || 'unknown';
+          var page = window.location.pathname;
+
+          // GA4: generate_lead
+          if (typeof gtag === 'function') {
+            gtag('event', 'generate_lead', {
+              event_category: 'cta',
+              event_label: placement,
+              page_location: page,
+              link_url: el.href || '',
+              button_text: (el.textContent || '').trim(),
+              value: 0,
+              currency: 'USD'
+            });
+          }
+
+          // Meta Pixel: Lead (uncomment when pixel is installed)
+          // if (typeof fbq === 'function') {
+          //   fbq('track', 'Lead', {
+          //     content_name: 'cta_click',
+          //     content_category: placement,
+          //     value: 0,
+          //     currency: 'USD'
+          //   });
+          // }
+        });
+      })();
+    </script>
+  </body>
+</html>

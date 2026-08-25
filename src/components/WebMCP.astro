@@ -1,0 +1,63 @@
+---
+/**
+ * Registers this site's tools with the browser's WebMCP model context.
+ *
+ * Lifecycle note: the site uses Astro's ClientRouter, so a normal bundled
+ * script would run once and then go stale across client-side navigations.
+ * Registration therefore happens on every astro:page-load and is torn down
+ * on astro:before-swap through an AbortController, which is the documented
+ * unregister path rather than a workaround.
+ */
+---
+
+<script>
+  const TOOLS_ENDPOINT = '/api/service-area';
+
+  let controller: AbortController | null = null;
+
+  async function registerTools() {
+    if (!document.modelContext) return; // No agent present. Nothing to do.
+
+    controller?.abort();
+    controller = new AbortController();
+
+    await document.modelContext.registerTool(
+      {
+        name: 'check_service_area',
+        description:
+          'Check whether Clarks Creek Plumbing travels to a given address, city or ZIP code in the Puyallup, Washington area. Call this before checking availability or booking anything, because nothing else matters if the plumber will not drive there. Returns whether the location is covered, how far it is from the shop, and any travel fee that applies.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            location: {
+              type: 'string',
+              description:
+                'Where the job is. A city name, a 5 digit ZIP code, or a street address. For example "Puyallup", "98371", or "1204 39th Ave SE, Puyallup WA".',
+            },
+          },
+          required: ['location'],
+        },
+        annotations: {
+          // Honest: this reads a lookup table and changes nothing.
+          readOnlyHint: true,
+        },
+        execute: async (params, { signal }) => {
+          const res = await fetch(TOOLS_ENDPOINT, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ location: params?.location ?? '' }),
+            // Passing the agent's signal through means a cancelled agent
+            // request actually cancels the network call rather than leaving
+            // it running and discarding the answer.
+            signal,
+          });
+          return JSON.stringify(await res.json());
+        },
+      },
+      { signal: controller.signal }
+    );
+  }
+
+  document.addEventListener('astro:page-load', registerTools);
+  document.addEventListener('astro:before-swap', () => controller?.abort());
+</script>

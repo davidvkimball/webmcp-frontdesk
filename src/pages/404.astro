@@ -1,0 +1,58 @@
+---
+/**
+ * Custom 404: branded, with CTAs back to useful pages.
+ * data-testid on buttons for CTA click tracking.
+ */
+import Layout from '@layouts/Layout.astro';
+---
+
+<Layout title="404 | Page Not Found" noIndex={true}>
+  <section class="error-page">
+    <div class="container error-content">
+      <h1>404</h1>
+      <h2>Page Not Found</h2>
+      <p>The page you're looking for doesn't exist or has been moved.</p>
+      <div class="error-cta">
+        <a href="/" class="btn btn-primary" data-testid="button-404-home">Back to Home</a>
+        <a href="/contact/" class="btn btn-secondary" data-testid="button-404-contact">Contact Us</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .error-page {
+    min-height: 70vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-4xl) 0;
+    background: var(--color-gray-50);
+  }
+
+  .error-content h1 {
+    font-size: clamp(5rem, 15vw, 10rem);
+    color: var(--color-primary);
+    line-height: 1;
+    margin-bottom: var(--space-sm);
+  }
+
+  .error-content h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .error-content p {
+    font-size: 1.125rem;
+    color: var(--color-gray-500);
+    max-width: 500px;
+    margin: 0 auto var(--space-xl);
+  }
+
+  .error-cta {
+    display: flex;
+    gap: var(--space-md);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+</style>

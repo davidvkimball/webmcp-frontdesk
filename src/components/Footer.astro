@@ -1,0 +1,21 @@
+---
+import { getEntry } from 'astro:content';
+
+const settings = await getEntry('settings', 'site');
+const { footer } = settings.data;
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; {year} {footer.copyright || 'All rights reserved.'}</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    padding: var(--space-lg) 0;
+    text-align: center;
+    font-size: 0.8125rem;
+  }
+</style>

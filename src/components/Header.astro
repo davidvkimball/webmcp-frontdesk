@@ -1,0 +1,121 @@
+---
+/**
+ * Header: site-wide navigation.
+ * Reads navigation from content collection (CMS-editable).
+ * CTA button uses data-testid for click tracking (see Layout.astro).
+ *
+ * Logo handling: when set in the CMS, `header.logo` is an ImageMetadata
+ * (validated by `image()` in content.config.ts) and renders through
+ * `<Image>` from astro:assets for optimized output. When unset, falls
+ * back to the site name as a text logo so the header still works on
+ * brand-new projects before the CMS is populated. See pipeline §8.3
+ * (fixed-container pattern, applies to both image and text logos).
+ */
+import { getEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+
+const settings = await getEntry('settings', 'site');
+const { header, siteName } = settings.data;
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+    <a href="/" class="header-logo" aria-label="Home">
+      {header.logo ? (
+        <Image
+          src={header.logo}
+          alt={header.siteName || siteName || 'Logo'}
+          width={120}
+          height={40}
+          loading="eager"
+        />
+      ) : (
+        <span class="header-logo-text">{header.siteName || siteName}</span>
+      )}
+    </a>
+
+    <nav class="header-nav" aria-label="Main navigation">
+      <ul class="nav-list">
+        {header.menu.map((item: { label: string; href: string }) => (
+          <li>
+            <a
+              href={item.href}
+              class:list={['nav-link', { active: currentPath.startsWith(item.href) && item.href !== '/' }]}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    {header.ctaLink && (
+      <a
+        href={header.ctaLink}
+        class="btn btn-primary header-cta"
+        data-testid="button-header-cta"
+      >
+        {header.ctaLabel || 'Get Started'}
+      </a>
+    )}
+  </div>
+</header>
+
+<style>
+  /* Structural only. Add brand colors/borders per project */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-white);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding-block: var(--space-md);
+  }
+
+  .header-logo {
+    /* Fixed dimensions prevent reflow when image is missing or loading */
+    display: block;
+    width: 120px;
+    height: 2rem;
+    flex-shrink: 0;
+  }
+
+  .header-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: left center;
+  }
+
+  .header-logo-text {
+    display: inline-block;
+    font-family: var(--font-heading, inherit);
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--color-text, inherit);
+    text-decoration: none;
+    line-height: 2rem;
+  }
+
+  .nav-list {
+    display: flex;
+    list-style: none;
+    gap: var(--space-lg);
+  }
+
+  .header-cta {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .header-nav { display: none; }
+  }
+</style>
