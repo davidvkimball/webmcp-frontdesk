@@ -160,11 +160,18 @@ async function notifyCustomer(toRaw: string, body: string, ref: string): Promise
     return;
   }
 
-  const to = toE164(toRaw);
-  if (!to) {
-    console.log(`[confirm] ${ref}: customer SMS skipped, no dialable number on the hold.`);
+  const dialable = toE164(toRaw);
+  if (!dialable) {
+    console.log(`[confirm] ${ref}: customer message skipped, no dialable number on the hold.`);
     return;
   }
+
+  // Twilio addresses a WhatsApp destination as "whatsapp:+1...". Match whatever
+  // channel the From number is on, so the same code path serves SMS and the
+  // WhatsApp sandbox without a second implementation. The sandbox matters here:
+  // it needs no A2P 10DLC registration, which is days of carrier vetting we do
+  // not have before the deadline.
+  const to = from.startsWith('whatsapp:') ? `whatsapp:${dialable}` : dialable;
 
   try {
     const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
