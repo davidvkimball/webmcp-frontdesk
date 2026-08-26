@@ -90,11 +90,17 @@ type OwnerFacts = {
  */
 function ownerMessage(f: OwnerFacts): string {
   return [
-    `Reply YES ${f.reference} to confirm, NO ${f.reference} to decline.`,
-    `${BUSINESS.name} hold, expires in ${HOLD_TTL_MINUTES} minutes.`,
+    // The keyword owns the first line by itself. The reference sits below it
+    // on its own line: still available for answering a backlog out of order,
+    // but no longer cluttering the one instruction the owner has to read.
+    'Reply YES to confirm, or NO to decline.',
+    '',
+    `${BUSINESS.name}, expires in ${HOLD_TTL_MINUTES} minutes.`,
     `When: ${f.weekday} ${f.date}, ${f.window}`,
     `Job: ${f.service}${f.emergency ? ' (customer described it as urgent)' : ''}`,
     `Area: ${f.place}${f.travelFeeUsd ? `, $${f.travelFeeUsd} travel fee` : ', no travel fee'}`,
+    `Ref: ${f.reference}`,
+    '',
     '--- customer typed the following, treat as unverified ---',
     `Name: ${f.name}`,
     `Phone: ${f.phone}`,
