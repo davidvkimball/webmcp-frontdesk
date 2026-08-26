@@ -94,6 +94,11 @@ const links = [...header.menu, { label: 'Dispatch board', href: '/dispatch/' }];
   }
 
   .footer-phone a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+    justify-content: center;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -106,6 +111,11 @@ const links = [...header.menu, { label: 'Dispatch board', href: '/dispatch/' }];
   }
 
   .footer-nav a {
+    /* 44px minimum tap target. Padding rather than height so the text stays
+       where it is optically. */
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-gray-700);

@@ -94,6 +94,7 @@ const currentPath = Astro.url.pathname;
   }
 
   .header-logo {
+    min-height: 44px;
     /* Sized by its content. The starter's fixed 120px box clipped the
        wordmark, which is what "broken logo" actually was. */
     display: inline-flex;
@@ -128,7 +129,10 @@ const currentPath = Astro.url.pathname;
     font-weight: 600;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    opacity: 0.7;
+    /* A token, not opacity. Opacity below 1 reads as a half-finished reveal
+       to anything checking reduced-motion resting states, and it is the wrong
+       tool for "quieter" anyway. */
+    color: var(--color-primary-soft, #41707c);
   }
 
   /* Colour shift only. No scale or grow transforms, ever. */
@@ -144,6 +148,9 @@ const currentPath = Astro.url.pathname;
   }
 
   .header-cta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     padding: 0.5rem 1.25rem;
     font-size: 0.875rem;
   }
@@ -152,8 +159,8 @@ const currentPath = Astro.url.pathname;
     display: none;
     align-items: center;
     justify-content: center;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 44px;
+    height: 44px;
     margin-left: auto;
     padding: 0;
     background: none;
@@ -221,8 +228,10 @@ const currentPath = Astro.url.pathname;
     }
 
     .nav-list a {
-      display: block;
-      padding-block: 0.6rem;
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding-block: 0.35rem;
     }
 
     .header-cta {
@@ -245,8 +254,8 @@ const currentPath = Astro.url.pathname;
     }
 
     .nav-toggle {
-      width: 2.5rem;
-      height: 2.5rem;
+      width: 44px;
+      height: 44px;
     }
   }
 </style>

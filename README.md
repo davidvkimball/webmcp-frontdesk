@@ -1,6 +1,8 @@
-# Clarks Creek Plumbing
+# Front Desk
 
-A working website for a small plumbing business that exposes real tools an AI agent can call, built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/).
+**A small business with no receptionist gets one, on the website it already has.**
+
+Front Desk is a working plumbing business website that exposes real tools an AI agent can call, built for the [OpenAI WebMCP Challenge](https://webmcp.devpost.com/). The demo business is Clarks Creek Plumbing of Puyallup, Washington.
 
 **Live site:** https://clarks-creek-plumbing.netlify.app
 

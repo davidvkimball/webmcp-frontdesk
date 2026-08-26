@@ -7,6 +7,8 @@
 
 :root {
   /* Brand colors */
+  /* A quieter brand tone, so nothing has to reach for opacity to recede. */
+  --color-primary-soft: #41707c;  /* 5.48:1 on white, AA with room to spare */
   --color-primary: #0f4c5c;
   --color-primary-dark: #0a3542;
   --color-primary-tint: #e7f0f2;
