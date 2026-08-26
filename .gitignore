@@ -33,3 +33,7 @@ deno.lock
 
 # Submission drafts stay local, not in the public repo
 SUBMISSION.md
+
+# Playwright screenshot scratch
+home-*.png
+.playwright-mcp/
