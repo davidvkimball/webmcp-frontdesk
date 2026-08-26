@@ -44,6 +44,13 @@ const coreTowns = [
           <a href="/contact/" class="btn btn-primary btn-lg" data-testid="button-hero-cta">Request a visit</a>
           <a href={telHref} class="btn btn-secondary btn-lg" data-testid="button-hero-call">Call {BUSINESS.phone}</a>
         </div>
+        <div class="live-slot" data-live-slot aria-live="polite">
+          <span class="live-dot" aria-hidden="true"></span>
+          <span class="live-label">Next open window</span>
+          <strong class="live-value" data-live-value>checking the schedule</strong>
+          <a href="/dispatch/" class="live-link" data-testid="link-hero-dispatch">see the whole week</a>
+        </div>
+
         <p class="hero-note">
           Emergencies are covered 24/7 for an active leak, no water, or a sewage backup. Anything else gets the next open window.
         </p>
@@ -173,7 +180,7 @@ const coreTowns = [
   /* ── Hero ─────────────────────────────────────────────────────── */
 
   .hero {
-    padding: var(--section-y-lg) 0;
+    padding: var(--section-y-lg) 0 var(--section-y);
     background:
       linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
   }
@@ -194,6 +201,58 @@ const coreTowns = [
     flex-wrap: wrap;
     gap: var(--space-md);
     margin-top: var(--space-xl);
+  }
+
+  .live-slot {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.7rem;
+    margin-top: var(--space-lg);
+    padding: 0.85rem 1.1rem;
+    background: var(--color-white);
+    border: 1px solid var(--color-line, rgba(15, 76, 92, 0.14));
+    border-left: 3px solid var(--color-accent, #c2703d);
+    border-radius: var(--radius-md, 0.5rem);
+  }
+
+  .live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #2e9e6b;
+    box-shadow: 0 0 0 0 rgba(46, 158, 107, 0.55);
+    animation: live-pulse 2.4s ease-out infinite;
+    align-self: center;
+  }
+
+  @keyframes live-pulse {
+    70% { box-shadow: 0 0 0 7px rgba(46, 158, 107, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(46, 158, 107, 0); }
+  }
+
+  /* The dot is the only motion on the page, and it earns nothing without it. */
+  @media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none; }
+  }
+
+  .live-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-primary-soft, #41707c);
+  }
+
+  .live-value {
+    font-size: 1.02rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-primary, #0f4c5c);
+  }
+
+  .live-link {
+    font-size: 0.85rem;
+    margin-left: auto;
   }
 
   .hero-note {
@@ -261,7 +320,7 @@ const coreTowns = [
   /* ── Services ─────────────────────────────────────────────────── */
 
   .services {
-    padding: var(--section-y-lg) 0 var(--section-y);
+    padding: var(--section-y) 0 var(--section-y-lg);
   }
 
   .section-head {
@@ -324,7 +383,9 @@ const coreTowns = [
   /* ── Service area ─────────────────────────────────────────────── */
 
   .area {
-    padding: var(--section-y) 0;
+    padding: var(--section-y-lg) 0;
+    background: var(--color-gray-50);
+    border-block: 1px solid var(--color-line, rgba(15, 76, 92, 0.1));
   }
 
   .area-head {
@@ -364,7 +425,7 @@ const coreTowns = [
   /* ── How it works ─────────────────────────────────────────────── */
 
   .how {
-    padding: var(--section-y) 0;
+    padding: var(--section-y-lg) 0 var(--section-y);
   }
 
   .how h2 {
@@ -460,7 +521,7 @@ const coreTowns = [
   /* ── Emergency ────────────────────────────────────────────────── */
 
   .emergency {
-    padding: var(--section-y) 0 var(--section-y-lg);
+    padding: 0 0 var(--section-y);
   }
 
   .emergency-inner {
@@ -539,3 +600,38 @@ const coreTowns = [
     }
   }
 </style>
+
+<script>
+  /**
+   * The live next-open-window in the hero.
+   *
+   * This is the site's signature move: it reads the same schedule the WebMCP
+   * tools book against, so a human visitor sees exactly what an agent would.
+   * It degrades to the shop hours if the fetch fails, because a plumber's
+   * homepage must never depend on an endpoint being up.
+   */
+  function paintNextSlot() {
+    const value = document.querySelector('[data-live-value]');
+    if (!value) return;
+
+    fetch('/api/schedule')
+      .then((r) => r.json())
+      .then((data) => {
+        for (const day of data.days ?? []) {
+          const open = (day.slots ?? []).find((s) => s.status === 'open');
+          if (!open) continue;
+          const when = day.isToday ? 'today' : day.weekday;
+          value.textContent = `${when}, ${open.window}`;
+          const total = (data.counts?.open ?? 0);
+          if (total) value.textContent += `  (${total} open in the next ten days)`;
+          return;
+        }
+        value.textContent = 'nothing open in the next ten days';
+      })
+      .catch(() => {
+        value.textContent = 'weekdays 7:00am to 6:00pm, Saturday 8:00am to 2:00pm';
+      });
+  }
+
+  document.addEventListener('astro:page-load', paintNextSlot);
+</script>

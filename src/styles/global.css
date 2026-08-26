@@ -54,8 +54,12 @@
      rather than fixed because a flat 4rem band above and below every
      section is a third of a phone screen spent on nothing, and a phone
      is the surface this gets judged on. */
-  --section-y: clamp(2.75rem, 6vw, 4.5rem);
-  --section-y-lg: clamp(3.5rem, 7vw, 5.5rem);
+  /* Rhythm, deliberately uneven. Related blocks sit close; a change of
+     subject gets air. Sections carry a surface change so whitespace is not
+     the only thing separating them. */
+  --section-y: clamp(2rem, 3.5vw, 2.75rem);
+  --section-y-lg: clamp(2.75rem, 4.5vw, 3.75rem);
+  --section-y-xl: clamp(3.5rem, 6vw, 5rem);
 
   /* Reading measure. Running text at full container width is the fastest
      way to make a page look unconsidered, so every block of prose is
