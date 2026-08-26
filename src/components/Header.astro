@@ -1,18 +1,13 @@
 ---
 /**
  * Header: site-wide navigation.
- * Reads navigation from content collection (CMS-editable).
- * CTA button uses data-testid for click tracking (see Layout.astro).
  *
- * Logo handling: when set in the CMS, `header.logo` is an ImageMetadata
- * (validated by `image()` in content.config.ts) and renders through
- * `<Image>` from astro:assets for optimized output. When unset, falls
- * back to the site name as a text logo so the header still works on
- * brand-new projects before the CMS is populated. See pipeline §8.3
- * (fixed-container pattern, applies to both image and text logos).
+ * The logo is an inline SVG lockup rather than an uploaded image: a droplet
+ * cut by the line of a creek, which is the name. Inline means no image
+ * request, no layout shift, and it inherits colour from CSS so it works in
+ * any theme. The starter's CMS-image logo branch is gone with the CMS.
  */
 import { getEntry } from 'astro:content';
-import { Image } from 'astro:assets';
 
 const settings = await getEntry('settings', 'site');
 const { header, siteName } = settings.data;
@@ -21,18 +16,27 @@ const currentPath = Astro.url.pathname;
 
 <header class="site-header">
   <div class="container header-inner">
-    <a href="/" class="header-logo" aria-label="Home">
-      {header.logo ? (
-        <Image
-          src={header.logo}
-          alt={header.siteName || siteName || 'Logo'}
-          width={120}
-          height={40}
-          loading="eager"
+    <a href="/" class="header-logo" aria-label={`${header.siteName || siteName}, home`}>
+      <svg class="logo-mark" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true" focusable="false">
+        <path
+          d="M16 2.5c0 0 9 10.1 9 15.6a9 9 0 1 1-18 0C7 12.6 16 2.5 16 2.5Z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.1"
+          stroke-linejoin="round"
         />
-      ) : (
-        <span class="header-logo-text">{header.siteName || siteName}</span>
-      )}
+        <path
+          d="M8.4 19.4c1.6 0 1.6-1.9 3.2-1.9s1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9 1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+      <span class="logo-text">
+        <strong>Clarks Creek</strong>
+        <span class="logo-sub">Plumbing</span>
+      </span>
     </a>
 
     <nav class="header-nav" aria-label="Main navigation">
@@ -80,28 +84,47 @@ const currentPath = Astro.url.pathname;
   }
 
   .header-logo {
-    /* Fixed dimensions prevent reflow when image is missing or loading */
-    display: block;
-    width: 120px;
-    height: 2rem;
+    /* Sized by its content. The starter's fixed 120px box clipped the
+       wordmark, which is what "broken logo" actually was. */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     flex-shrink: 0;
+    color: var(--color-primary, #0f4c5c);
+    text-decoration: none;
+    line-height: 1;
   }
 
-  .header-logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    object-position: left center;
+  .logo-mark {
+    flex-shrink: 0;
+    display: block;
   }
 
-  .header-logo-text {
-    display: inline-block;
+  .logo-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+  }
+
+  .logo-text strong {
     font-family: var(--font-heading, inherit);
     font-weight: 700;
-    font-size: 1.125rem;
-    color: var(--color-text, inherit);
-    text-decoration: none;
-    line-height: 2rem;
+    font-size: 1.0625rem;
+    letter-spacing: -0.01em;
+  }
+
+  .logo-sub {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  /* Colour shift only. No scale or grow transforms, ever. */
+  .header-logo:hover,
+  .header-logo:focus-visible {
+    color: var(--color-primary-dark, #0a3542);
   }
 
   .nav-list {
