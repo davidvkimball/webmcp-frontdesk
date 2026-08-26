@@ -73,7 +73,7 @@ const detail: Record<string, { does: string; moves: string }> = {
             <div class="row-head">
               <h2>{service.label}</h2>
               <p class="price">
-                {usd(service.low)} to {usd(service.high)}
+                {usd(service.low)} <span class="to">to</span> {usd(service.high)}
                 <span class="hours-on-site">Usually {service.slots * 2} hours on site</span>
               </p>
             </div>
@@ -154,7 +154,7 @@ const detail: Record<string, { does: string; moves: string }> = {
 
 <style>
   .page-header {
-    padding: var(--space-3xl) 0 var(--space-2xl);
+    padding: var(--section-y-lg) 0 var(--section-y);
     background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
   }
 
@@ -163,11 +163,11 @@ const detail: Record<string, { does: string; moves: string }> = {
   }
 
   .ranges {
-    padding-bottom: var(--space-3xl);
+    padding-bottom: var(--section-y-lg);
   }
 
   .ranges-note {
-    max-width: 72ch;
+    max-width: var(--measure);
     margin-bottom: var(--space-2xl);
     color: var(--color-gray-700);
   }
@@ -199,13 +199,25 @@ const detail: Record<string, { does: string; moves: string }> = {
     font-size: 1.25rem;
   }
 
+  /* A range is two figures and a joining word, and it reads as a range only
+     when the figures carry the weight. Tabular numerals keep the columns of
+     prices aligned down the page. */
   .price {
     flex-shrink: 0;
     text-align: right;
     font-size: 1.25rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
     color: var(--color-primary);
     white-space: nowrap;
+  }
+
+  .price .to {
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--color-gray-500);
   }
 
   .hours-on-site {
@@ -218,7 +230,7 @@ const detail: Record<string, { does: string; moves: string }> = {
 
   .row-body {
     padding-top: var(--space-md);
-    max-width: 76ch;
+    max-width: var(--measure);
     color: var(--color-gray-700);
   }
 
@@ -232,7 +244,7 @@ const detail: Record<string, { does: string; moves: string }> = {
   }
 
   .fees {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
     background: var(--color-gray-50);
     border-block: 1px solid var(--color-gray-200);
   }
@@ -247,17 +259,22 @@ const detail: Record<string, { does: string; moves: string }> = {
     gap: var(--space-lg);
   }
 
+  /* Copper top edge here against the teal one on the service cards, so the
+     colour is doing a job: teal is the work, copper is the money. */
   .fee-card {
     padding: var(--space-lg);
     background: var(--color-white);
     border: 1px solid var(--color-gray-200);
+    border-top: 3px solid var(--color-accent);
     border-radius: var(--radius-lg);
   }
 
   .fee-amount {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    color: var(--color-accent-dark);
     line-height: 1;
   }
 
@@ -266,13 +283,21 @@ const detail: Record<string, { does: string; moves: string }> = {
     margin: var(--space-sm) 0;
   }
 
+  /* The fee grid and the scheduling row both collapse to one column below
+     900px, so these paragraphs take the whole container and need their own
+     measure rather than the column's. */
   .fee-card p:last-child {
+    max-width: var(--measure);
     font-size: 0.9375rem;
     color: var(--color-gray-700);
   }
 
+  .emergency-card p {
+    max-width: var(--measure);
+  }
+
   .scheduling {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
   }
 
   .scheduling-inner {
@@ -288,13 +313,13 @@ const detail: Record<string, { does: string; moves: string }> = {
 
   .scheduling p {
     color: var(--color-gray-700);
-    max-width: 58ch;
+    max-width: var(--measure-tight);
   }
 
   .emergency-card {
     padding: var(--space-xl);
     background: var(--color-accent-tint);
-    border: 1px solid #f0d8c6;
+    border: 1px solid var(--color-accent-line);
     border-radius: var(--radius-lg);
   }
 
@@ -312,7 +337,7 @@ const detail: Record<string, { does: string; moves: string }> = {
   }
 
   .cta-banner {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
     background: var(--color-primary);
     color: var(--color-white);
     text-align: center;
@@ -324,6 +349,8 @@ const detail: Record<string, { does: string; moves: string }> = {
   }
 
   .cta-banner p {
+    max-width: var(--measure);
+    margin-inline: auto;
     margin-bottom: var(--space-xl);
     color: var(--color-primary-tint);
   }

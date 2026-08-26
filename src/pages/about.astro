@@ -111,7 +111,7 @@ const years = new Date().getFullYear() - BUSINESS.established;
 
 <style>
   .page-header {
-    padding: var(--space-3xl) 0 var(--space-2xl);
+    padding: var(--section-y-lg) 0 var(--section-y);
     background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
   }
 
@@ -120,13 +120,13 @@ const years = new Date().getFullYear() - BUSINESS.established;
   }
 
   .disclosure-section {
-    padding-bottom: var(--space-2xl);
+    padding-bottom: var(--section-y);
   }
 
   .disclosure {
     padding: var(--space-xl);
     background: var(--color-accent-tint);
-    border: 1px solid #f0d8c6;
+    border: 1px solid var(--color-accent-line);
     border-left: 4px solid var(--color-accent);
     border-radius: var(--radius-lg);
   }
@@ -137,7 +137,7 @@ const years = new Date().getFullYear() - BUSINESS.established;
   }
 
   .disclosure p {
-    max-width: 72ch;
+    max-width: var(--measure);
     color: var(--color-gray-700);
   }
 
@@ -148,7 +148,7 @@ const years = new Date().getFullYear() - BUSINESS.established;
   }
 
   .story {
-    padding-bottom: var(--space-3xl);
+    padding-bottom: var(--section-y-lg);
   }
 
   .story-inner {
@@ -173,14 +173,17 @@ const years = new Date().getFullYear() - BUSINESS.established;
 
   .prose p {
     color: var(--color-gray-700);
-    max-width: 68ch;
+    max-width: var(--measure);
   }
 
+  /* The site header is sticky too, so the offset has to clear it. At
+     var(--space-3xl) the top card slid under the header instead of
+     stopping below it. */
   .side {
     display: grid;
     gap: var(--space-lg);
     position: sticky;
-    top: var(--space-3xl);
+    top: calc(var(--space-3xl) + var(--space-lg));
   }
 
   .side-card {
@@ -202,12 +205,14 @@ const years = new Date().getFullYear() - BUSINESS.established;
     font-family: var(--font-mono);
     font-size: 1rem;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
   }
 
   .side-note {
     font-size: 0.8125rem;
     color: var(--color-gray-500);
     line-height: 1.55;
+    max-width: var(--measure);
   }
 
   .hours {
@@ -221,10 +226,17 @@ const years = new Date().getFullYear() - BUSINESS.established;
   @media (max-width: 900px) {
     .story-inner {
       grid-template-columns: 1fr;
+      gap: var(--space-xl);
     }
 
     .side {
       position: static;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .disclosure {
+      padding: var(--space-lg);
     }
   }
 </style>

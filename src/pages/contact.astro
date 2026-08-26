@@ -176,19 +176,23 @@ const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
 </Layout>
 
 <style>
+  /* Same header treatment as every other interior page. This one was the
+     odd one out on a flat grey, which read as a different site. */
   .page-header {
-    padding: var(--space-3xl) 0 var(--space-xl);
-    background: var(--color-gray-50);
-    border-bottom: 1px solid var(--color-gray-200);
+    padding: var(--section-y-lg) 0 var(--section-y);
+    background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-md);
   }
 
   .page-header .lede {
     margin-top: var(--space-md);
-    max-width: 58ch;
   }
 
   .page-content {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
   }
 
   .contact-grid {
@@ -218,6 +222,7 @@ const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
     margin-top: var(--space-sm);
     font-size: 0.9375rem;
     color: var(--color-gray-700);
+    max-width: var(--measure);
   }
 
   .form-group {
@@ -247,12 +252,34 @@ const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
     font-size: 1rem;
     color: var(--color-gray-900);
     background: var(--color-white);
-    transition: border-color var(--transition-fast);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   }
 
+  .form-group textarea {
+    resize: vertical;
+    min-height: 8rem;
+    line-height: 1.6;
+  }
+
+  /* Two rules on purpose. The border shift fires on any focus, including a
+     mouse click and a programmatic focus from the agent filling the form, so
+     the active field is never unmarked. The outline is the keyboard ring on
+     top of it, hugging the field rather than floating off it so the focused
+     box reads as one object. */
   .form-group input:focus,
   .form-group textarea:focus {
     border-color: var(--color-primary);
+  }
+
+  .form-group input:focus-visible,
+  .form-group textarea:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0;
+  }
+
+  .form-group input:hover,
+  .form-group textarea:hover {
+    border-color: var(--color-gray-500);
   }
 
   .contact-info {
@@ -279,6 +306,7 @@ const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
     margin: var(--space-xs) 0 var(--space-lg);
     color: var(--color-gray-700);
     font-size: 0.9375rem;
+    max-width: var(--measure);
   }
 
   .contact-info dd:last-of-type {
@@ -291,6 +319,18 @@ const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
     border-top: 1px solid var(--color-gray-200);
     font-size: 0.8125rem;
     color: var(--color-gray-500);
+    max-width: var(--measure);
+  }
+
+  @media (max-width: 560px) {
+    .agent-note,
+    .contact-info {
+      padding: var(--space-lg);
+    }
+
+    .contact-form button[type='submit'] {
+      width: 100%;
+    }
   }
 </style>
 

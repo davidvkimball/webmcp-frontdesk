@@ -15,6 +15,7 @@
   --color-accent: #b0450f;
   --color-accent-dark: #8b360b;
   --color-accent-tint: #fdf1e8;
+  --color-accent-line: #f0d8c6;
 
   /* Neutrals */
   --color-white: #ffffff;
@@ -46,6 +47,22 @@
   --space-3xl: 4rem;
   --space-4xl: 6rem;
 
+  /* Vertical rhythm. One fluid step for the whole site, so the gap
+     between any two sections is the same gap on every page. Fluid
+     rather than fixed because a flat 4rem band above and below every
+     section is a third of a phone screen spent on nothing, and a phone
+     is the surface this gets judged on. */
+  --section-y: clamp(2.75rem, 6vw, 4.5rem);
+  --section-y-lg: clamp(3.5rem, 7vw, 5.5rem);
+
+  /* Reading measure. Running text at full container width is the fastest
+     way to make a page look unconsidered, so every block of prose is
+     capped at one of these. The ch unit here is wider than an average
+     lowercase glyph, so 62ch lands at roughly 66 real characters. */
+  --measure: 62ch;
+  --measure-tight: 54ch;
+  --measure-wide: 68ch;
+
   /* Layout */
   --container-max: 1120px;
   --container-padding: var(--space-lg);
@@ -59,6 +76,10 @@
   /* Elevation. Kept shallow: this is a plumber, not a dashboard. */
   --shadow-sm: 0 1px 2px rgba(16, 34, 42, 0.06);
   --shadow-md: 0 6px 20px rgba(16, 34, 42, 0.08);
+
+  /* A soft ring that sits under the focus outline, so the outline reads
+     as deliberate rather than as a browser default nobody styled. */
+  --focus-ring: 0 0 0 4px rgba(15, 76, 92, 0.16);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -125,6 +146,13 @@ a:hover {
   color: var(--color-primary-dark);
 }
 
+/* Brand-tinted selection rather than the OS blue. Light background with
+   dark text so it stays legible over the teal panels too. */
+::selection {
+  background: var(--color-primary-line);
+  color: var(--color-primary-dark);
+}
+
 /* ── Motion ────────────────────────────────────────────────────────
    Anything that moves needs a working fallback, so the switch below
    turns off smooth scrolling and shortens every transition to
@@ -158,20 +186,62 @@ a:hover {
   outline: none;
 }
 
-/* ── Typography ────────────────────────────────────────────────── */
+/* Buttons and fields carry the ring as well as the outline. Colour and
+   shadow only, never a transform. */
+.btn:focus-visible {
+  outline-offset: 3px;
+  box-shadow: var(--focus-ring);
+}
+
+.btn-accent:focus-visible {
+  outline-color: var(--color-accent-dark);
+  box-shadow: 0 0 0 4px rgba(176, 69, 15, 0.18);
+}
+
+/* ── Typography ────────────────────────────────────────────────────
+   The ramp is fluid on both axes: a rem floor so it never collapses on
+   a narrow phone, and a vw term so it grows smoothly instead of sitting
+   pinned at the minimum until some arbitrary breakpoint. Leading tightens
+   as the size goes up, which is why each level sets its own.
+   ────────────────────────────────────────────────────────────────── */
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
   letter-spacing: -0.02em;
   color: var(--color-black);
   text-wrap: balance;
 }
 
-h1 { font-size: clamp(2.125rem, 5vw, 3.125rem); }
-h2 { font-size: clamp(1.625rem, 4vw, 2.25rem); }
-h3 { font-size: clamp(1.125rem, 3vw, 1.375rem); }
+h1 {
+  font-size: clamp(2rem, 1.35rem + 2.9vw, 3.125rem);
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+}
+
+h2 {
+  font-size: clamp(1.5rem, 1.15rem + 1.55vw, 2.25rem);
+  line-height: 1.16;
+  letter-spacing: -0.022em;
+}
+
+h3 {
+  font-size: clamp(1.125rem, 1.05rem + 0.35vw, 1.375rem);
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+h4 {
+  font-size: 1.0625rem;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
+/* Better rag on running text. Unsupported browsers ignore it. */
+p {
+  text-wrap: pretty;
+}
 
 p + p {
   margin-top: var(--space-md);
@@ -193,6 +263,15 @@ p + p {
   padding-inline: var(--container-padding);
 }
 
+/* A phone has no width to spare. 24px of gutter each side on a 375px
+   screen is 13% of the viewport spent on margin. */
+@media (max-width: 480px) {
+  .container,
+  .container-narrow {
+    padding-inline: 1.25rem;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -205,9 +284,13 @@ p + p {
   border-width: 0;
 }
 
-/* Small uppercase label above a heading. */
+/* Small uppercase label above a heading, with a short copper tick that
+   carries the accent colour into every section head without a single
+   extra element in the markup. */
 .eyebrow {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: var(--space-sm);
   font-size: 0.75rem;
   font-weight: 700;
@@ -216,11 +299,21 @@ p + p {
   color: var(--color-primary);
 }
 
+.eyebrow::before {
+  content: "";
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
 /* Opening paragraph under a page title. */
 .lede {
-  font-size: 1.125rem;
+  font-size: clamp(1.0625rem, 1.01rem + 0.24vw, 1.1875rem);
+  line-height: 1.55;
   color: var(--color-gray-700);
-  max-width: 62ch;
+  max-width: var(--measure-tight);
 }
 
 /* A short rule that carries brand colour without a heavy border. */
@@ -229,6 +322,18 @@ p + p {
   width: 3.5rem;
   border-radius: var(--radius-pill);
   background: var(--color-accent);
+}
+
+/* Prose measure, for any block of running text that would otherwise
+   stretch to the full container. */
+.measure {
+  max-width: var(--measure);
+}
+
+/* Figures line up in columns wherever numbers are compared: prices,
+   distances, counts. */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }
 
 .card {
@@ -245,12 +350,14 @@ p + p {
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  border: 1px solid var(--color-primary-line);
   border-radius: var(--radius-pill);
   background: var(--color-primary-tint);
   color: var(--color-primary-dark);
 }
 
 .badge-accent {
+  border-color: var(--color-accent-line);
   background: var(--color-accent-tint);
   color: var(--color-accent-dark);
 }
@@ -316,6 +423,12 @@ p + p {
   box-shadow: var(--shadow-md);
 }
 
+/* Pressed state reads as pressed: the shadow goes flat rather than the
+   button changing size. */
+.btn:active {
+  box-shadow: none;
+}
+
 .btn-lg {
   padding: 0.9rem 1.75rem;
   font-size: 1.0625rem;
@@ -331,6 +444,8 @@ p + p {
 }
 
 .site-header .nav-link {
+  position: relative;
+  display: inline-block;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-gray-700);
@@ -341,8 +456,27 @@ p + p {
   color: var(--color-primary);
 }
 
+/* The current page gets a copper underline as well as the colour shift,
+   so which page you are on is not carried by hue alone. */
+.site-header .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -0.35rem;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.site-header .nav-link.active::after {
+  opacity: 1;
+}
+
 .site-footer {
-  margin-top: var(--space-3xl);
+  margin-top: var(--section-y);
   padding-block: var(--space-xl);
   border-top: 1px solid var(--color-gray-200);
   background: var(--color-gray-50);

@@ -1,21 +1,139 @@
 ---
+/**
+ * Footer.
+ *
+ * A single line of copyright under six full pages read as an unfinished
+ * template, so the footer now carries the three things a trade site's footer
+ * is actually for: who you are, where to go next, and how to ring. No new
+ * copy is invented here. The links are the same menu the header renders, the
+ * phone and the base come from src/lib/business.ts, and the disclosure line
+ * is the one already held in the settings entry, printed verbatim.
+ *
+ * The dispatch board is added to the link list because it is a real page and
+ * the home page is currently the only route to it.
+ */
 import { getEntry } from 'astro:content';
+import { BUSINESS } from '@lib/business';
 
 const settings = await getEntry('settings', 'site');
-const { footer } = settings.data;
+const { footer, header, siteName } = settings.data;
 const year = new Date().getFullYear();
+
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
+const links = [...header.menu, { label: 'Dispatch board', href: '/dispatch/' }];
 ---
 
 <footer class="site-footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <span class="footer-logo">
+        <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true" focusable="false">
+          <path
+            d="M16 2.5c0 0 9 10.1 9 15.6a9 9 0 1 1-18 0C7 12.6 16 2.5 16 2.5Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.1"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M8.4 19.4c1.6 0 1.6-1.9 3.2-1.9s1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9 1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+        <strong>{header.siteName || siteName}</strong>
+      </span>
+      <p class="footer-base">{BUSINESS.base}</p>
+      <p class="footer-phone"><a href={telHref} data-testid="link-footer-call">{BUSINESS.phone}</a></p>
+    </div>
+
+    <nav class="footer-nav" aria-label="Footer navigation">
+      <ul>
+        {links.map((item: { label: string; href: string }) => (
+          <li><a href={item.href}>{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+
   <div class="container">
-    <p>&copy; {year} {footer.copyright || 'All rights reserved.'}</p>
+    <p class="footer-legal">&copy; {year} {footer.copyright || 'All rights reserved.'}</p>
   </div>
 </footer>
 
 <style>
-  .site-footer {
-    padding: var(--space-lg) 0;
-    text-align: center;
-    font-size: 0.8125rem;
+  .footer-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-xl);
+    padding-bottom: var(--space-lg);
+  }
+
+  .footer-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .footer-logo strong {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .footer-base,
+  .footer-phone {
+    margin-top: var(--space-xs);
+    font-size: 0.875rem;
+  }
+
+  .footer-phone a {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .footer-nav ul {
+    display: grid;
+    grid-template-columns: repeat(2, auto);
+    gap: var(--space-xs) var(--space-2xl);
+    list-style: none;
+  }
+
+  .footer-nav a {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-gray-700);
+  }
+
+  /* Colour and underline only. No scale or grow, on any state. */
+  .footer-nav a:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .footer-legal {
+    max-width: var(--measure);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-gray-200);
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 560px) {
+    .footer-inner {
+      gap: var(--space-lg);
+    }
+
+    .footer-nav ul {
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs) var(--space-md);
+    }
   }
 </style>

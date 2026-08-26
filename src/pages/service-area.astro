@@ -142,7 +142,7 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
 
 <style>
   .page-header {
-    padding: var(--space-3xl) 0 var(--space-2xl);
+    padding: var(--section-y-lg) 0 var(--section-y);
     background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
   }
 
@@ -151,11 +151,11 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
   }
 
   .bands {
-    padding-bottom: var(--space-3xl);
+    padding-bottom: var(--section-y-lg);
   }
 
   .band-note {
-    max-width: 72ch;
+    max-width: var(--measure);
     margin-bottom: var(--space-2xl);
   }
 
@@ -231,6 +231,7 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
   .town-miles {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
     color: var(--color-gray-500);
     white-space: nowrap;
   }
@@ -239,10 +240,11 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
     margin-top: var(--space-lg);
     font-size: 0.875rem;
     color: var(--color-gray-500);
+    max-width: var(--measure);
   }
 
   .outside {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
     background: var(--color-gray-50);
     border-block: 1px solid var(--color-gray-200);
   }
@@ -260,10 +262,11 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
 
   .outside p {
     color: var(--color-gray-700);
-    max-width: 60ch;
+    max-width: var(--measure);
   }
 
   .example {
+    max-width: var(--measure);
     margin-top: var(--space-lg);
     padding: var(--space-lg);
     border-left: 3px solid var(--color-primary);
@@ -281,7 +284,7 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
   }
 
   .not-listed {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
     text-align: center;
   }
 
@@ -291,6 +294,7 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
 
   .not-listed p {
     color: var(--color-gray-700);
+    max-width: var(--measure);
     margin-inline: auto;
   }
 
@@ -306,6 +310,10 @@ const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
     .band-grid,
     .outside-inner {
       grid-template-columns: 1fr;
+    }
+
+    .outside-inner {
+      gap: var(--space-xl);
     }
   }
 

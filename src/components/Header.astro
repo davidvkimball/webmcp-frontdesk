@@ -185,7 +185,12 @@ const currentPath = Astro.url.pathname;
   }
 
   /* Narrow viewports matter more than usual here: ChatGPT's in-app browser,
-     which is the surface this project is judged on, is a phone-width window. */
+     which is the surface this project is judged on, is a phone-width window.
+     At 375px the logo, the call to action and the menu button came to two
+     pixels more than the row could hold, so the call to action wrapped onto
+     its own line and the sticky header ate 118px of an 812px screen. The
+     order also put the menu button between the logo and the call to action,
+     which is not where either belongs. */
   @media (max-width: 768px) {
     .header-inner {
       flex-wrap: wrap;
@@ -194,6 +199,8 @@ const currentPath = Astro.url.pathname;
 
     .nav-toggle {
       display: inline-flex;
+      order: 3;
+      margin-left: 0;
     }
 
     .header-nav {
@@ -220,6 +227,26 @@ const currentPath = Astro.url.pathname;
 
     .header-cta {
       order: 2;
+      margin-left: auto;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .header-inner {
+      padding-block: 0.7rem;
+    }
+
+    /* Taller, not wider: 34px was under a comfortable thumb target and the
+       row has no horizontal slack to give. Written as the padding shorthand
+       because the longhand pair collides with the shorthand on the base rule
+       and the CSS minifier drops the block half of it. */
+    .header-cta {
+      padding: 0.7rem 0.85rem;
+    }
+
+    .nav-toggle {
+      width: 2.5rem;
+      height: 2.5rem;
     }
   }
 </style>

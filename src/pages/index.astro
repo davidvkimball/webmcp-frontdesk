@@ -102,7 +102,7 @@ const coreTowns = [
         {featured.map((service) => (
           <li class="service-card">
             <h3>{service.label}</h3>
-            <p class="price">{usd(service.low)} to {usd(service.high)}</p>
+            <p class="price">{usd(service.low)} <span class="to">to</span> {usd(service.high)}</p>
             <p class="window">Usually {service.slots * 2} hours on site</p>
           </li>
         ))}
@@ -173,7 +173,7 @@ const coreTowns = [
   /* ── Hero ─────────────────────────────────────────────────────── */
 
   .hero {
-    padding: var(--space-3xl) 0;
+    padding: var(--section-y-lg) 0;
     background:
       linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
   }
@@ -236,6 +236,7 @@ const coreTowns = [
   .facts dd {
     font-size: 0.9375rem;
     line-height: 1.5;
+    max-width: var(--measure);
   }
 
   .facts a {
@@ -247,6 +248,7 @@ const coreTowns = [
   .mono {
     font-family: var(--font-mono);
     font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
   }
 
   .fact-note {
@@ -259,7 +261,7 @@ const coreTowns = [
   /* ── Services ─────────────────────────────────────────────────── */
 
   .services {
-    padding: var(--space-3xl) 0 var(--space-2xl);
+    padding: var(--section-y-lg) 0 var(--section-y);
   }
 
   .section-head {
@@ -301,7 +303,16 @@ const coreTowns = [
   .price {
     font-size: 1.25rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
     color: var(--color-primary);
+  }
+
+  .price .to {
+    font-size: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--color-gray-500);
   }
 
   .window {
@@ -313,7 +324,7 @@ const coreTowns = [
   /* ── Service area ─────────────────────────────────────────────── */
 
   .area {
-    padding: var(--space-2xl) 0;
+    padding: var(--section-y) 0;
   }
 
   .area-head {
@@ -329,7 +340,7 @@ const coreTowns = [
   }
 
   .area-note {
-    max-width: 72ch;
+    max-width: var(--measure);
     color: var(--color-gray-700);
   }
 
@@ -353,7 +364,7 @@ const coreTowns = [
   /* ── How it works ─────────────────────────────────────────────── */
 
   .how {
-    padding: var(--space-2xl) 0;
+    padding: var(--section-y) 0;
   }
 
   .how h2 {
@@ -394,19 +405,52 @@ const coreTowns = [
     color: var(--color-primary-tint);
   }
 
+  /* Stacked below 900px this card takes the full container, so the copy
+     needs its own measure rather than the column's. */
+  .how-card p {
+    max-width: var(--measure);
+  }
+
   .how-card h3 {
     margin-bottom: var(--space-md);
   }
 
+  /* Numbered steps with real numerals rather than browser markers. The
+     counter is the only thing carrying the order, so it is worth drawing
+     properly. */
   .steps {
-    padding-left: 1.2rem;
     display: grid;
     gap: var(--space-md);
+    padding-left: 0;
+    list-style: none;
+    counter-reset: step;
   }
 
   .steps li {
+    position: relative;
+    padding-left: 2.5rem;
+    counter-increment: step;
     font-size: 0.9375rem;
     color: var(--color-gray-700);
+  }
+
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.05rem;
+    display: grid;
+    place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    color: var(--color-primary);
+    background: var(--color-primary-tint);
+    border: 1px solid var(--color-primary-line);
+    border-radius: 50%;
   }
 
   .steps strong {
@@ -416,7 +460,7 @@ const coreTowns = [
   /* ── Emergency ────────────────────────────────────────────────── */
 
   .emergency {
-    padding: var(--space-2xl) 0 var(--space-3xl);
+    padding: var(--section-y) 0 var(--section-y-lg);
   }
 
   .emergency-inner {
@@ -426,7 +470,7 @@ const coreTowns = [
     gap: var(--space-2xl);
     padding: var(--space-xl);
     background: var(--color-accent-tint);
-    border: 1px solid #f0d8c6;
+    border: 1px solid var(--color-accent-line);
     border-radius: var(--radius-lg);
   }
 
@@ -436,7 +480,7 @@ const coreTowns = [
   }
 
   .emergency p {
-    max-width: 62ch;
+    max-width: var(--measure);
     color: var(--color-gray-700);
   }
 
@@ -454,6 +498,16 @@ const coreTowns = [
     .hero-inner,
     .how-grid {
       grid-template-columns: 1fr;
+    }
+
+    /* Stacked, the 4rem column gap becomes 4rem of dead space between the
+       copy and the card. */
+    .hero-inner {
+      gap: var(--space-xl);
+    }
+
+    .section-head {
+      margin-bottom: var(--space-xl);
     }
 
     .service-grid {

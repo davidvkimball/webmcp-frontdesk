@@ -33,19 +33,49 @@ import { BUSINESS, HOURS } from '@lib/business';
 
 <style>
   .thanks {
-    padding-block: var(--space-3xl, 4rem);
+    padding-block: var(--section-y-lg);
   }
 
   .thanks h1 {
     margin-block: var(--space-sm, 0.5rem) var(--space-md, 1rem);
   }
 
+  /* Same accent treatment the emergency blocks carry on the other pages, so
+     the one thing on this page that is urgent looks urgent. */
   .card {
-    margin-block: var(--space-xl, 2rem);
+    margin-block: var(--space-xl);
+    padding: var(--space-xl);
+    background: var(--color-accent-tint);
+    border-color: var(--color-accent-line);
+    box-shadow: none;
   }
 
+  .card h2 {
+    font-size: 1.25rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  .card p {
+    color: var(--color-gray-700);
+    max-width: var(--measure);
+  }
+
+  /* Flex rather than inline-flex, so the button drops onto its own line
+     instead of sitting inline with the sentence above it. */
   .card .btn {
-    margin-top: var(--space-md, 1rem);
+    display: flex;
+    width: fit-content;
+    margin-top: var(--space-md);
+  }
+
+  @media (max-width: 560px) {
+    .card {
+      padding: var(--space-lg);
+    }
+
+    .card .btn {
+      width: 100%;
+    }
   }
 
   .back {
