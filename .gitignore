@@ -27,3 +27,6 @@ _bases/
 
 # Playwright MCP scratch snapshots
 .playwright-mcp/
+
+# Netlify CLI writes this when running netlify dev
+deno.lock

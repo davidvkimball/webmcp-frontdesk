@@ -348,3 +348,409 @@ p + p {
   background: var(--color-gray-50);
   color: var(--color-gray-500);
 }
+
+/* ── Dispatch board ────────────────────────────────────────────────
+   The board at /dispatch/ re-renders itself from JSON every couple of
+   seconds, and markup injected by client script never carries the
+   Astro scoping attribute, so a scoped page style block would not
+   reach it. These live in the global sheet instead. Every class is
+   namespaced dsp- so nothing here leaks into a page that does not
+   want it.
+   ────────────────────────────────────────────────────────────────── */
+
+:root {
+  --dsp-open-bg: var(--color-white);
+  --dsp-open-line: var(--color-gray-200);
+  --dsp-open-ink: var(--color-gray-500);
+
+  --dsp-held-bg: var(--color-accent-tint);
+  --dsp-held-line: #f0d8c6;
+  --dsp-held-ink: var(--color-accent-dark);
+
+  --dsp-confirmed-bg: #e8f5ed;
+  --dsp-confirmed-line: #b3ddc4;
+  --dsp-confirmed-ink: #116a31;
+
+  --dsp-dead-bg: var(--color-gray-100);
+  --dsp-dead-line: var(--color-gray-300);
+  --dsp-dead-ink: var(--color-gray-500);
+
+  --dsp-declined-bg: #fdecea;
+  --dsp-declined-line: #f2c6c3;
+  --dsp-declined-ink: #8e1b16;
+
+  /* The change flash. Warm enough to catch the eye on camera without
+     colliding with any status colour above. */
+  --dsp-flash-bg: #fff4c9;
+  --dsp-flash-line: #d9a300;
+}
+
+/* ── Status bar ─────────────────────────────────────────────────── */
+
+.dsp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  background: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.dsp-counts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(5.5rem, 1fr));
+  gap: var(--space-sm);
+  flex: 1 1 20rem;
+}
+
+.dsp-tile {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--dsp-open-line);
+  border-radius: var(--radius-md);
+  background: var(--dsp-open-bg);
+}
+
+.dsp-tile-pending {
+  border-color: var(--dsp-held-line);
+  background: var(--dsp-held-bg);
+}
+
+.dsp-tile-confirmed {
+  border-color: var(--dsp-confirmed-line);
+  background: var(--dsp-confirmed-bg);
+}
+
+.dsp-tile-n {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-900);
+}
+
+.dsp-tile-l {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-500);
+}
+
+.dsp-tile-pending .dsp-tile-n,
+.dsp-tile-pending .dsp-tile-l {
+  color: var(--dsp-held-ink);
+}
+
+.dsp-tile-confirmed .dsp-tile-n,
+.dsp-tile-confirmed .dsp-tile-l {
+  color: var(--dsp-confirmed-ink);
+}
+
+.dsp-live {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--color-gray-500);
+}
+
+.dsp-dot {
+  flex-shrink: 0;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--color-success);
+  animation: dsp-pulse 2s ease-in-out infinite;
+}
+
+/* The seconds counter beside it keeps ticking with motion turned off,
+   so liveness never depends on the pulse. */
+@media (prefers-reduced-motion: reduce) {
+  .dsp-dot {
+    animation: none;
+  }
+}
+
+@keyframes dsp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+
+.dsp-age {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-gray-700);
+}
+
+.dsp-clock {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+}
+
+.dsp-is-stale .dsp-dot {
+  background: var(--color-accent);
+  animation: none;
+}
+
+.dsp-warning {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--dsp-held-line);
+  border-radius: var(--radius-md);
+  background: var(--dsp-held-bg);
+  color: var(--dsp-held-ink);
+}
+
+.dsp-warning[hidden] {
+  display: none;
+}
+
+/* ── The board ──────────────────────────────────────────────────── */
+
+.dsp-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  list-style: none;
+}
+
+.dsp-day {
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-md);
+  background: var(--color-white);
+  overflow: hidden;
+}
+
+.dsp-day-today {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-tint);
+}
+
+.dsp-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 0.55rem 0.8rem;
+  background: var(--color-gray-50);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.dsp-day-today .dsp-day-head {
+  background: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  color: var(--color-white);
+}
+
+.dsp-weekday {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.dsp-date {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.dsp-chip {
+  padding: 0.1rem 0.45rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: var(--radius-pill);
+  background: var(--color-white);
+  color: var(--color-primary);
+}
+
+.dsp-slots {
+  list-style: none;
+}
+
+.dsp-slot {
+  padding: 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--color-gray-100);
+  box-shadow: inset 3px 0 0 transparent;
+}
+
+.dsp-slot:last-child {
+  border-bottom: none;
+}
+
+.dsp-slot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.dsp-time {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-gray-700);
+}
+
+.dsp-pill {
+  flex-shrink: 0;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border: 1px solid var(--dsp-open-line);
+  border-radius: var(--radius-pill);
+  background: var(--dsp-open-bg);
+  color: var(--dsp-open-ink);
+}
+
+.dsp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 0.5rem;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-700);
+}
+
+.dsp-ref {
+  font-family: var(--font-mono);
+  color: var(--color-gray-500);
+}
+
+.dsp-countdown {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--dsp-held-ink);
+}
+
+/* Status colouring. Every one of these carries a written label in the
+   pill as well, so colour is never the only thing saying what it is. */
+
+.dsp-slot-held {
+  background: var(--dsp-held-bg);
+}
+
+.dsp-slot-held .dsp-pill {
+  border-color: var(--dsp-held-line);
+  background: var(--color-white);
+  color: var(--dsp-held-ink);
+}
+
+.dsp-slot-confirmed {
+  background: var(--dsp-confirmed-bg);
+}
+
+.dsp-slot-confirmed .dsp-pill {
+  border-color: var(--dsp-confirmed-line);
+  background: var(--color-white);
+  color: var(--dsp-confirmed-ink);
+}
+
+.dsp-slot-expired,
+.dsp-slot-cancelled {
+  background: var(--dsp-dead-bg);
+}
+
+.dsp-slot-expired .dsp-pill,
+.dsp-slot-cancelled .dsp-pill {
+  border-color: var(--dsp-dead-line);
+  background: var(--color-white);
+  color: var(--dsp-dead-ink);
+}
+
+.dsp-slot-declined {
+  background: var(--dsp-declined-bg);
+}
+
+.dsp-slot-declined .dsp-pill {
+  border-color: var(--dsp-declined-line);
+  background: var(--color-white);
+  color: var(--dsp-declined-ink);
+}
+
+/* ── The change flash ──────────────────────────────────────────────
+   This is the moment a tool call becomes visible. Background, border
+   and colour only, no transform of any kind. Declared after the status
+   rules so it wins on source order while it is running.
+   ────────────────────────────────────────────────────────────────── */
+
+.dsp-slot-changed {
+  animation: dsp-flash 2.2s ease-out 1 both;
+}
+
+@keyframes dsp-flash {
+  0%, 65% {
+    background-color: var(--dsp-flash-bg);
+    box-shadow: inset 3px 0 0 var(--dsp-flash-line);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+/* With motion reduced the row still marks itself, it just holds the
+   highlight steady instead of fading out of it. The script takes the
+   class off on the same schedule either way. */
+@media (prefers-reduced-motion: reduce) {
+  .dsp-slot-changed {
+    animation: none;
+    background-color: var(--dsp-flash-bg) !important;
+    box-shadow: inset 3px 0 0 var(--dsp-flash-line);
+  }
+}
+
+.dsp-closed {
+  padding: var(--space-lg) 0.8rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-gray-500);
+}
+
+.dsp-empty {
+  padding: var(--space-2xl);
+  text-align: center;
+  color: var(--color-gray-500);
+  border: 1px dashed var(--color-gray-300);
+  border-radius: var(--radius-lg);
+}
+
+@media (max-width: 560px) {
+  .dsp-bar {
+    padding: var(--space-sm);
+  }
+
+  .dsp-counts {
+    grid-template-columns: repeat(3, 1fr);
+    flex-basis: 100%;
+  }
+
+  .dsp-tile {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .dsp-tile-n {
+    font-size: 1.375rem;
+  }
+
+  .dsp-board {
+    grid-template-columns: 1fr;
+  }
+}

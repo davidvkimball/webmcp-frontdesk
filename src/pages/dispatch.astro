@@ -1,0 +1,407 @@
+---
+/**
+ * Dispatch board.
+ *
+ * A window onto the state the WebMCP tools mutate. The tools write holds into
+ * Netlify Blobs, /api/schedule reads that back, and this page paints it every
+ * two seconds. When an agent takes a hold, the row for that window changes
+ * status here within one poll, which is the whole point: the tool call has a
+ * visible consequence somebody can watch.
+ *
+ * Read only by construction. There is no write path on this page and no tool
+ * registered from it. Customer phone numbers live on the hold record and are
+ * never included in the endpoint, so they cannot appear here.
+ *
+ * Prerendered like every other page, so what ships is a shell the client fills
+ * in on load rather than state baked at build time. An on-demand first paint
+ * was the other option and it does not survive the catch-all 404 rule in
+ * netlify.toml, which swallows any route without a file behind it. The board
+ * arrives within one poll of load either way.
+ */
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+
+const settings = await getEntry('settings', 'site');
+const { siteName } = settings.data;
+---
+
+<Layout
+  title={`Dispatch board | ${siteName}`}
+  description="The live schedule behind the WebMCP tools on this site, shown as it changes."
+>
+  <section class="page-header">
+    <div class="container">
+      <span class="eyebrow">Dispatch</span>
+      <h1>The board, live</h1>
+      <p class="lede">
+        This is the same schedule the WebMCP tools on this site read and write. When an agent checks availability, it is reading this. When it requests a window, the row for that window changes here within about two seconds.
+      </p>
+      <p class="read-only">
+        <strong>Read only.</strong> Nothing on this page books, confirms or cancels anything. It polls one endpoint and paints what comes back. Customer phone numbers are stored on a hold and are never sent to this page.
+      </p>
+    </div>
+  </section>
+
+  <section class="board-wrap">
+    <div class="container">
+      <div class="dsp-bar" id="dsp-bar">
+        <div class="dsp-counts">
+          <div class="dsp-tile dsp-tile-pending">
+            <span class="dsp-tile-n" id="dsp-count-pending">..</span>
+            <span class="dsp-tile-l">Pending</span>
+          </div>
+          <div class="dsp-tile dsp-tile-confirmed">
+            <span class="dsp-tile-n" id="dsp-count-confirmed">..</span>
+            <span class="dsp-tile-l">Confirmed</span>
+          </div>
+          <div class="dsp-tile">
+            <span class="dsp-tile-n" id="dsp-count-open">..</span>
+            <span class="dsp-tile-l">Open</span>
+          </div>
+        </div>
+
+        <div class="dsp-live">
+          <span class="dsp-dot" aria-hidden="true"></span>
+          <span>
+            Updated <span class="dsp-age" id="dsp-age">..</span> ago, polling every 2 seconds
+            <span class="dsp-clock" id="dsp-clock">Waiting for the first read</span>
+          </span>
+        </div>
+      </div>
+
+      <p class="dsp-warning" id="dsp-warning" hidden>
+        <span aria-hidden="true">!</span>
+        <span id="dsp-warning-text">The board cannot reach the schedule right now. Anything below it is the last state that came back.</span>
+      </p>
+
+      <div class="sr-only" aria-live="polite" id="dsp-announce"></div>
+
+      <ol class="dsp-board" id="dsp-board">
+        <li class="dsp-empty">Reading the schedule from the same endpoint the tools use.</li>
+      </ol>
+
+      <p class="legend">
+        <span><strong>Open</strong> is a window an agent can request.</span>
+        <span><strong>Held</strong> is requested and waiting on Dale, and it releases itself when the countdown runs out.</span>
+        <span><strong>Confirmed</strong> is a job on the calendar.</span>
+        <span><strong>Expired</strong>, <strong>Declined</strong> and <strong>Cancelled</strong> windows go back to open once the day is rebuilt.</span>
+      </p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-header {
+    padding: var(--space-2xl) 0 var(--space-lg);
+    background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-md);
+  }
+
+  .read-only {
+    max-width: 68ch;
+    margin-top: var(--space-md);
+    font-size: 0.9375rem;
+    color: var(--color-gray-700);
+  }
+
+  .board-wrap {
+    padding-bottom: var(--space-3xl);
+  }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs) var(--space-lg);
+    margin-top: var(--space-lg);
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+  }
+</style>
+
+<script>
+  /**
+   * The live half of the board.
+   *
+   * Two timers: a 2 second poll and a 1 second tick. The tick is what makes
+   * the page look alive between polls, since it moves the age counter and the
+   * hold countdowns without waiting on the network.
+   *
+   * The board is only re-rendered when the schedule actually changed, so a
+   * running flash is not cut short by the next poll landing on top of it.
+   */
+  type Slot = {
+    start: string;
+    window: string;
+    status: string;
+    reference?: string;
+    service?: string;
+    customerName?: string;
+    expiresAt?: string | null;
+  };
+
+  type BoardDay = {
+    date: string;
+    weekday: string;
+    isToday: boolean;
+    closed: boolean;
+    slots: Slot[];
+  };
+
+  type Board = {
+    ok: boolean;
+    generatedAt: string;
+    timezone: string;
+    today: string;
+    counts: { pending: number; confirmed: number; open: number };
+    days: BoardDay[];
+  };
+
+  const POLL_MS = 2000;
+  const FLASH_MS = 2400;
+  const STALE_AFTER_MS = 7000;
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  const STATUS_LABEL: Record<string, string> = {
+    open: 'Open',
+    held: 'Held',
+    confirmed: 'Confirmed',
+    cancelled: 'Cancelled',
+    declined: 'Declined',
+    expired: 'Expired',
+  };
+
+  /** Values here reach us through tool calls, so they are never trusted as markup. */
+  function esc(value: unknown): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function dateLabel(date: string): string {
+    const parts = date.split('-').map(Number);
+    return `${MONTHS[(parts[1] ?? 1) - 1]} ${parts[2]}`;
+  }
+
+  function countdownText(expiresAt: string | null | undefined): string {
+    if (!expiresAt) return '';
+    const ms = Date.parse(expiresAt) - Date.now();
+    if (!Number.isFinite(ms)) return '';
+    if (ms <= 0) return 'Hold expired';
+    const total = Math.floor(ms / 1000);
+    return `Hold expires in ${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+  }
+
+  function clockText(iso: string, timezone: string): string {
+    try {
+      return new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(new Date(iso));
+    } catch {
+      return '';
+    }
+  }
+
+  function start() {
+    const boardEl = document.getElementById('dsp-board');
+    const barEl = document.getElementById('dsp-bar');
+    if (!boardEl || !barEl) return () => {};
+
+    const ageEl = document.getElementById('dsp-age');
+    const clockEl = document.getElementById('dsp-clock');
+    const warningEl = document.getElementById('dsp-warning');
+    const announceEl = document.getElementById('dsp-announce');
+    const countEls: Record<string, HTMLElement | null> = {
+      pending: document.getElementById('dsp-count-pending'),
+      confirmed: document.getElementById('dsp-count-confirmed'),
+      open: document.getElementById('dsp-count-open'),
+    };
+
+    /** Status of every slot as of the last paint, keyed date|start. */
+    let previous = new Map<string, string>();
+    /** When each slot last changed, so a re-render can restore a running flash. */
+    const changedAt = new Map<string, number>();
+    let signature = '';
+    let lastOkAt = 0;
+    let failures = 0;
+    let stopped = false;
+    let clearFlashTimer: ReturnType<typeof setTimeout> | undefined;
+
+    function slotHtml(day: BoardDay, slot: Slot, flashing: boolean): string {
+      const key = `${day.date}|${slot.start}`;
+      const label = STATUS_LABEL[slot.status] ?? slot.status;
+      const meta = [
+        slot.service ? `<span>${esc(slot.service)}</span>` : '',
+        slot.customerName ? `<span>${esc(slot.customerName)}</span>` : '',
+        slot.reference ? `<span class="dsp-ref">${esc(slot.reference)}</span>` : '',
+      ]
+        .filter(Boolean)
+        // Joined on a space so the row reads as separate fields rather than
+        // one run-on word to a screen reader. Flex ignores the whitespace.
+        .join(' ');
+      const countdown =
+        slot.status === 'held' && slot.expiresAt
+          ? `<div class="dsp-meta"><span class="dsp-countdown" data-expires="${esc(slot.expiresAt)}">${esc(countdownText(slot.expiresAt))}</span></div>`
+          : '';
+
+      return `<li class="dsp-slot dsp-slot-${esc(slot.status)}${flashing ? ' dsp-slot-changed' : ''}" data-key="${esc(key)}" data-status="${esc(slot.status)}">
+        <div class="dsp-slot-row">
+          <span class="dsp-time">${esc(slot.window)}</span>
+          <span class="dsp-pill">${esc(label)}</span>
+        </div>
+        ${meta ? `<div class="dsp-meta">${meta}</div>` : ''}
+        ${countdown}
+      </li>`;
+    }
+
+    function render(data: Board) {
+      const now = Date.now();
+      boardEl.innerHTML = data.days
+        .map((day) => {
+          const body = day.closed
+            ? '<p class="dsp-closed">Closed for scheduled work. Emergency calls only.</p>'
+            : `<ul class="dsp-slots">${day.slots
+                .map((slot) => {
+                  const at = changedAt.get(`${day.date}|${slot.start}`) ?? 0;
+                  return slotHtml(day, slot, now - at < FLASH_MS);
+                })
+                .join('')}</ul>`;
+
+          return `<li class="dsp-day${day.isToday ? ' dsp-day-today' : ''}" data-date="${esc(day.date)}">
+            <div class="dsp-day-head">
+              <span><span class="dsp-weekday">${esc(day.weekday)}</span> <span class="dsp-date">${esc(dateLabel(day.date))}</span></span>
+              ${day.isToday ? '<span class="dsp-chip">Today</span>' : ''}
+            </div>
+            ${body}
+          </li>`;
+        })
+        .join('');
+    }
+
+    function tick() {
+      if (lastOkAt && ageEl) {
+        ageEl.textContent = `${Math.max(0, Math.round((Date.now() - lastOkAt) / 1000))}s`;
+      }
+      for (const el of document.querySelectorAll<HTMLElement>('[data-expires]')) {
+        el.textContent = countdownText(el.dataset.expires);
+      }
+      if (lastOkAt && Date.now() - lastOkAt > STALE_AFTER_MS) setStale(true);
+    }
+
+    function setStale(stale: boolean) {
+      barEl.classList.toggle('dsp-is-stale', stale);
+      if (warningEl) warningEl.hidden = !stale;
+    }
+
+    function apply(data: Board) {
+      for (const [name, el] of Object.entries(countEls)) {
+        if (el) el.textContent = String(data.counts?.[name as 'pending' | 'confirmed' | 'open'] ?? 0);
+      }
+      if (clockEl) {
+        const clock = clockText(data.generatedAt, data.timezone);
+        clockEl.textContent = clock ? `Shop clock ${clock}` : '';
+      }
+
+      const current = new Map<string, string>();
+      const changes: string[] = [];
+      const now = Date.now();
+
+      for (const day of data.days) {
+        for (const slot of day.slots) {
+          const key = `${day.date}|${slot.start}`;
+          current.set(key, slot.status);
+          const before = previous.get(key);
+          // An empty map means this is the first read of the session, so the
+          // whole board would otherwise flash at once for no reason.
+          if (previous.size > 0 && before !== undefined && before !== slot.status) {
+            changedAt.set(key, now);
+            changes.push(
+              `${day.weekday} ${dateLabel(day.date)}, ${slot.window}, is now ${STATUS_LABEL[slot.status] ?? slot.status}`
+            );
+          }
+        }
+      }
+      previous = current;
+
+      const next = JSON.stringify(data.days);
+      if (next !== signature || changes.length > 0) {
+        signature = next;
+        render(data);
+        tick();
+      }
+
+      if (changes.length > 0) {
+        if (announceEl) announceEl.textContent = changes.join('. ');
+        // Take the flash back off on schedule, whether it animated or, with
+        // motion reduced, sat there as a flat highlight.
+        clearTimeout(clearFlashTimer);
+        clearFlashTimer = setTimeout(() => {
+          for (const el of document.querySelectorAll('.dsp-slot-changed')) {
+            el.classList.remove('dsp-slot-changed');
+          }
+        }, FLASH_MS);
+      }
+    }
+
+    async function poll() {
+      if (stopped) return;
+      const controller = new AbortController();
+      const bail = setTimeout(() => controller.abort(), 5000);
+      try {
+        const res = await fetch('/api/schedule', { cache: 'no-store', signal: controller.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as Board;
+        if (!data || data.ok !== true || !Array.isArray(data.days)) throw new Error('unusable payload');
+        failures = 0;
+        lastOkAt = Date.now();
+        setStale(false);
+        apply(data);
+        if (ageEl) ageEl.textContent = '0s';
+      } catch {
+        // One dropped poll is normal. Two in a row is worth saying out loud,
+        // and the board keeps showing the last good state either way.
+        failures += 1;
+        if (failures >= 2) setStale(true);
+      } finally {
+        clearTimeout(bail);
+      }
+    }
+
+    poll();
+    const pollTimer = setInterval(poll, POLL_MS);
+    const tickTimer = setInterval(tick, 1000);
+
+    return () => {
+      stopped = true;
+      clearInterval(pollTimer);
+      clearInterval(tickTimer);
+      clearTimeout(clearFlashTimer);
+    };
+  }
+
+  // The client router keeps the document alive between pages, so the timers
+  // have to be torn down on the way out or they poll forever from a page that
+  // no longer exists.
+  let stop: (() => void) | undefined;
+
+  document.addEventListener('astro:page-load', () => {
+    stop?.();
+    stop = undefined;
+    if (document.getElementById('dsp-board')) stop = start();
+  });
+
+  document.addEventListener('astro:before-swap', () => {
+    stop?.();
+    stop = undefined;
+  });
+</script>
