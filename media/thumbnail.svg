@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d4351"/>
+      <stop offset="100%" stop-color="#07242d"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="8" fill="#c2703d"/>
+
+  <g transform="translate(80,78)">
+    <g transform="scale(1.4)">
+      <path d="M16 2.5c0 0 9 10.1 9 15.6a9 9 0 1 1-18 0C7 12.6 16 2.5 16 2.5Z" fill="none" stroke="#7fd4e8" stroke-width="2.1" stroke-linejoin="round"/>
+      <path d="M8.4 19.4c1.6 0 1.6-1.9 3.2-1.9s1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9 1.6 1.9 3.2 1.9 1.6-1.9 3.2-1.9" fill="none" stroke="#7fd4e8" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <text x="62" y="32" font-family="Segoe UI, Arial, sans-serif" font-size="24" font-weight="600" fill="#7fd4e8" letter-spacing="4">CLARKS CREEK PLUMBING</text>
+  </g>
+
+  <text x="80" y="400" font-family="Segoe UI, Arial, sans-serif" font-size="88" font-weight="700" fill="#ffffff">Booked by an agent.</text>
+  <text x="80" y="505" font-family="Segoe UI, Arial, sans-serif" font-size="88" font-weight="700" fill="#f0a875">Confirmed by a human.</text>
+
+  <text x="80" y="700" font-family="Segoe UI, Arial, sans-serif" font-size="26" fill="#6f9aa8" letter-spacing="3">WEBMCP</text>
+</svg>
