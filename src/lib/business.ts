@@ -149,3 +149,108 @@ export function coverageFor(location: string): Coverage {
   }
   return { covered: false, reason: 'OUTSIDE_SERVICE_AREA', place: place.name, miles, nearest };
 }
+
+/* ------------------------------------------------------------------ */
+/* Hours, services and slots                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Business dates are plain YYYY-MM-DD and slot times are plain HH:mm in the
+ * shop's local time. There is deliberately no timezone maths anywhere: the
+ * plumber works Pacific time, the schedule is his, and converting to UTC and
+ * back is a whole class of off-by-one bugs bought for nothing.
+ */
+export const HOURS = {
+  timezone: 'America/Los_Angeles',
+  /** Two hour arrival windows, by first hour. Index 0 is Sunday. */
+  slotStartsByWeekday: [
+    [], // Sunday, closed for scheduled work
+    ['08:00', '10:00', '12:00', '14:00', '16:00'], // Monday
+    ['08:00', '10:00', '12:00', '14:00', '16:00'],
+    ['08:00', '10:00', '12:00', '14:00', '16:00'],
+    ['08:00', '10:00', '12:00', '14:00', '16:00'],
+    ['08:00', '10:00', '12:00', '14:00', '16:00'], // Friday
+    ['08:00', '10:00', '12:00'], // Saturday, last start noon
+  ] as string[][],
+  display: {
+    weekdays: 'Monday to Friday, 7:00am to 6:00pm',
+    saturday: 'Saturday, 8:00am to 2:00pm',
+    sunday: 'Closed for scheduled work',
+  },
+  emergency:
+    'Emergencies are covered 24/7, but only an active leak, no water, or a sewage backup counts as an emergency. Anything else gets the next open appointment.',
+  emergencyCalloutUsd: 195,
+  diagnosticUsd: 89,
+} as const;
+
+export type Service = {
+  key: string;
+  label: string;
+  low: number;
+  high: number;
+  /** How many consecutive two hour windows the job usually takes. */
+  slots: number;
+  aliases: string[];
+};
+
+export const SERVICES: Service[] = [
+  { key: 'drain_clearing', label: 'Drain clearing', low: 185, high: 375, slots: 1,
+    aliases: ['drain', 'clog', 'clogged', 'blocked', 'backed up', 'slow drain', 'snake'] },
+  { key: 'water_heater_tank', label: 'Water heater replacement, tank', low: 1650, high: 2900, slots: 2,
+    aliases: ['water heater', 'hot water', 'no hot water', 'heater'] },
+  { key: 'water_heater_tankless', label: 'Tankless water heater install', low: 3800, high: 6500, slots: 3,
+    aliases: ['tankless', 'on demand water heater'] },
+  { key: 'toilet_replacement', label: 'Toilet replacement', low: 425, high: 780, slots: 1,
+    aliases: ['toilet', 'wc', 'commode', 'running toilet'] },
+  { key: 'leak_repair', label: 'Leak diagnosis and repair', low: 250, high: 900, slots: 1,
+    aliases: ['leak', 'leaking', 'dripping', 'burst', 'pipe leak', 'water damage'] },
+  { key: 'sump_pump', label: 'Sump pump replacement', low: 850, high: 1800, slots: 1,
+    aliases: ['sump', 'sump pump', 'flooding basement'] },
+  { key: 'repipe', label: 'Whole house repipe, PEX', low: 6500, high: 14000, slots: 4,
+    aliases: ['repipe', 're-pipe', 'replumb', 'new pipes', 'galvanized'] },
+];
+
+/** Fuzzy match free text to a service. Longest alias wins. */
+export function resolveService(input: string): Service | null {
+  const raw = String(input || '').toLowerCase().trim();
+  if (!raw) return null;
+  let best: { service: Service; len: number } | null = null;
+  for (const service of SERVICES) {
+    if (raw.includes(service.key) || raw.includes(service.label.toLowerCase())) return service;
+    for (const alias of service.aliases) {
+      if (raw.includes(alias) && (!best || alias.length > best.len)) best = { service, len: alias.length };
+    }
+  }
+  return best?.service ?? null;
+}
+
+/** True if the words describe something that genuinely cannot wait. */
+export function looksLikeEmergency(input: string): boolean {
+  const raw = String(input || '').toLowerCase();
+  return /\b(no water|sewage|sewer backup|backing up|burst|flooding|gushing|active leak|emergency)\b/.test(raw);
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Parse YYYY-MM-DD as a local calendar date, with no timezone shifting. */
+export function parseBusinessDate(date: string): { y: number; m: number; d: number; weekday: number } | null {
+  if (!ISO_DATE.test(String(date || ''))) return null;
+  const [y, m, d] = date.split('-').map(Number);
+  const probe = new Date(Date.UTC(y, m - 1, d));
+  if (probe.getUTCFullYear() !== y || probe.getUTCMonth() !== m - 1 || probe.getUTCDate() !== d) return null;
+  return { y, m, d, weekday: probe.getUTCDay() };
+}
+
+/** Every arrival window the shop could theoretically offer on a date. */
+export function slotsForDate(date: string): string[] {
+  const parsed = parseBusinessDate(date);
+  if (!parsed) return [];
+  return HOURS.slotStartsByWeekday[parsed.weekday] ?? [];
+}
+
+export function formatSlot(start: string): string {
+  const [h] = start.split(':').map(Number);
+  const end = h + 2;
+  const label = (n: number) => `${((n + 11) % 12) + 1}${n < 12 ? 'am' : 'pm'}`;
+  return `${label(h)} to ${label(end)}`;
+}

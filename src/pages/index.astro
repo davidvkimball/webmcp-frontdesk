@@ -1,68 +1,498 @@
 ---
+/**
+ * Home.
+ *
+ * Every fact on this page is read from src/lib/business.ts rather than typed
+ * into the markup, so the page and the tool responses cannot drift apart.
+ * BUSINESS.md is the source both of them answer to.
+ */
 import Layout from '@layouts/Layout.astro';
 import { getEntry } from 'astro:content';
+import { BUSINESS, HOURS, SERVICES, AREA } from '@lib/business';
 
 const settings = await getEntry('settings', 'site');
-const { siteName, header } = settings.data;
+const { siteName } = settings.data;
+
+const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
+
+/** The six jobs we get called about most, in the order people ask for them. */
+const featured = ['drain_clearing', 'water_heater_tank', 'leak_repair', 'toilet_replacement', 'sump_pump', 'repipe']
+  .map((key) => SERVICES.find((s) => s.key === key)!)
+  .filter(Boolean);
+
+const coreTowns = [
+  'Puyallup', 'Sumner', 'South Hill', 'Edgewood', 'Milton', 'Fife', 'Bonney Lake',
+  'Orting', 'Tacoma', 'Spanaway', 'Auburn', 'Graham', 'Federal Way',
+];
 ---
 
-<Layout title={`Home | ${siteName}`}>
+<Layout title={`Plumber in Puyallup, WA | ${siteName}`}>
   <section class="hero">
-    <div class="container">
-      <h1>Welcome to Your New Site</h1>
-      <p>This is the lilAgents Astro starter. Replace this content with your own.</p>
-      {header.ctaLink && (
-        <a href={header.ctaLink} class="btn btn-primary" data-testid="button-hero-cta">
-          {header.ctaLabel || 'Get Started'}
-        </a>
-      )}
+    <div class="container hero-inner">
+      <div class="hero-copy">
+        <span class="eyebrow">Puyallup, Washington. Since {BUSINESS.established}.</span>
+        <h1>Drains, water heaters and leaks, fixed properly.</h1>
+        <p class="lede">
+          Clarks Creek Plumbing is {BUSINESS.owner} and two others in two vans, working out of Puyallup since {BUSINESS.established}. There is no call centre and no dispatcher. The person who answers is the person who turns up.
+        </p>
+        <div class="hero-actions">
+          <a href="/contact/" class="btn btn-primary btn-lg" data-testid="button-hero-cta">Request a visit</a>
+          <a href={telHref} class="btn btn-secondary btn-lg" data-testid="button-hero-call">Call {BUSINESS.phone}</a>
+        </div>
+        <p class="hero-note">
+          Emergencies are covered 24/7 for an active leak, no water, or a sewage backup. Anything else gets the next open window.
+        </p>
+      </div>
+
+      <aside class="hero-card" aria-label="Shop details">
+        <h2 class="card-title">The short version</h2>
+        <dl class="facts">
+          <div>
+            <dt>Hours</dt>
+            <dd>
+              {HOURS.display.weekdays}<br />
+              {HOURS.display.saturday}<br />
+              Sunday: {HOURS.display.sunday.toLowerCase()}
+            </dd>
+          </div>
+          <div>
+            <dt>Based in</dt>
+            <dd>{BUSINESS.base}. Mobile crew, no storefront.</dd>
+          </div>
+          <div>
+            <dt>Crew</dt>
+            <dd>{BUSINESS.crew} people, two vans. {BUSINESS.owner} runs the jobs and the schedule.</dd>
+          </div>
+          <div>
+            <dt>Licence</dt>
+            <dd>
+              <span class="mono">{BUSINESS.license.number}</span> ({BUSINESS.license.state}).
+              <span class="fact-note">{BUSINESS.license.note}</span>
+            </dd>
+          </div>
+        </dl>
+      </aside>
     </div>
   </section>
 
-  <section class="features">
+  <section class="strip" aria-label="Why people call us">
+    <div class="container strip-inner">
+      <div class="strip-item">
+        <strong>{new Date().getFullYear() - BUSINESS.established} years</strong>
+        <span>Working the same valley since {BUSINESS.established}</span>
+      </div>
+      <div class="strip-item">
+        <strong>{coreTowns.length} towns</strong>
+        <span>Inside {AREA.coreMiles} miles, with no travel fee</span>
+      </div>
+      <div class="strip-item">
+        <strong>{usd(HOURS.diagnosticUsd)} diagnostic</strong>
+        <span>Waived when we do the repair the same visit</span>
+      </div>
+      <div class="strip-item">
+        <strong>24/7</strong>
+        <span>For a real emergency, not for a dripping tap</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="services">
     <div class="container">
-      <h2>What We Do</h2>
-      <p>Add your services, features, or value propositions here.</p>
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">What we do</span>
+          <h2>Residential repairs and replacements</h2>
+          <p class="lede">Prices are ranges because the job is not knowable from a phone call. The range is honest, and the number we give you after looking sits inside it.</p>
+        </div>
+        <a href="/services/" class="btn btn-secondary" data-testid="button-services-all">All services and fees</a>
+      </div>
+
+      <ul class="service-grid">
+        {featured.map((service) => (
+          <li class="service-card">
+            <h3>{service.label}</h3>
+            <p class="price">{usd(service.low)} to {usd(service.high)}</p>
+            <p class="window">Usually {service.slots * 2} hours on site</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="area">
+    <div class="container area-inner">
+      <div>
+        <span class="eyebrow">Where we go</span>
+        <h2>Puyallup first, then most of the valley</h2>
+        <p>
+          Everything within {AREA.coreMiles} straight-line miles of downtown Puyallup is our core area and carries no travel fee. Between {AREA.coreMiles} and {AREA.extendedMiles} miles we still come out, with a {usd(AREA.travelFeeUsd)} travel fee added up front rather than discovered on the invoice.
+        </p>
+        <p>
+          Past that we say so and point you at someone closer. Driving 40 minutes each way is how a two hour window turns into a missed afternoon for the customer after you.
+        </p>
+        <a href="/service-area/" class="btn btn-secondary" data-testid="button-area-detail">Check your town</a>
+      </div>
+      <ul class="town-list">
+        {coreTowns.map((town) => <li>{town}</li>)}
+      </ul>
+    </div>
+  </section>
+
+  <section class="how">
+    <div class="container">
+      <span class="eyebrow">Booking</span>
+      <h2>Two ways to get on the schedule</h2>
+      <div class="how-grid">
+        <div class="how-card">
+          <h3>The usual way</h3>
+          <ol class="steps">
+            <li><strong>Tell us what is wrong.</strong> The form or the phone, whichever you prefer. Say the town, say the problem.</li>
+            <li><strong>We hold a window.</strong> Two hour arrival windows, first start 8:00am, last start 4:00pm on weekdays.</li>
+            <li><strong>Dale confirms.</strong> A booking is not real until the shop says yes, so nothing is confirmed by a machine on its own.</li>
+          </ol>
+        </div>
+        <div class="how-card how-card-alt">
+          <h3>Through an AI assistant</h3>
+          <p>
+            This site publishes its booking tools to the browser, so an assistant you are already talking to can check whether we cover your address, read the real open windows, price the job, and request a hold. Same schedule, same answers, no phone tag.
+          </p>
+          <p>
+            Nothing books itself. The assistant asks for a window, we get a text, and one word from us confirms it.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="emergency">
+    <div class="container emergency-inner">
+      <div>
+        <span class="badge badge-accent">24/7</span>
+        <h2>What actually counts as an emergency</h2>
+        <p>{HOURS.emergency}</p>
+        <p class="emergency-fee">
+          After-hours callout is {usd(HOURS.emergencyCalloutUsd)}, and it is applied to the repair rather than charged on top of it.
+        </p>
+      </div>
+      <a href={telHref} class="btn btn-accent btn-lg" data-testid="button-emergency-call">Call {BUSINESS.phone}</a>
     </div>
   </section>
 
   <section class="cta-banner">
     <div class="container">
-      <h2>Ready to Get Started?</h2>
-      <p>Replace with your call to action.</p>
-      <a href="/contact/" class="btn btn-primary" data-testid="button-cta-section">
-        Contact Us
-      </a>
+      <h2>Tell us what is going on</h2>
+      <p>Give us the town and the problem and we will come back with a window and a range.</p>
+      <a href="/contact/" class="btn btn-primary btn-lg" data-testid="button-cta-section">Request a visit</a>
     </div>
   </section>
 </Layout>
 
 <style>
+  /* ── Hero ─────────────────────────────────────────────────────── */
+
   .hero {
-    padding: var(--space-4xl) 0;
-    background: var(--color-gray-50);
-    text-align: center;
+    padding: var(--space-3xl) 0 var(--space-4xl);
+    background:
+      linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
   }
 
   .hero h1 {
     margin-bottom: var(--space-md);
   }
 
-  .hero p {
-    font-size: 1.125rem;
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+  }
+
+  .hero-note {
+    margin-top: var(--space-lg);
+    font-size: 0.9375rem;
     color: var(--color-gray-500);
-    max-width: 600px;
-    margin: 0 auto var(--space-xl);
+    max-width: 52ch;
   }
 
-  .features {
-    padding: var(--space-4xl) 0;
-    text-align: center;
+  .hero-card {
+    padding: var(--space-xl);
+    background: var(--color-white);
+    border: 1px solid var(--color-primary-line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
   }
 
-  .features h2 {
+  .card-title {
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: var(--space-lg);
+  }
+
+  .facts {
+    display: grid;
+    gap: var(--space-lg);
+  }
+
+  .facts dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+    margin-bottom: var(--space-xs);
+  }
+
+  .facts dd {
+    font-size: 0.9375rem;
+    line-height: 1.5;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+  }
+
+  .fact-note {
+    display: block;
+    margin-top: var(--space-xs);
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+  }
+
+  /* ── Stat strip ───────────────────────────────────────────────── */
+
+  .strip {
+    border-block: 1px solid var(--color-gray-200);
+    background: var(--color-gray-50);
+  }
+
+  .strip-inner {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-lg);
+    padding-block: var(--space-xl);
+  }
+
+  .strip-item strong {
+    display: block;
+    font-size: 1.375rem;
+    line-height: 1.2;
+    color: var(--color-primary);
+  }
+
+  .strip-item span {
+    display: block;
+    margin-top: var(--space-xs);
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+  }
+
+  /* ── Services ─────────────────────────────────────────────────── */
+
+  .services {
+    padding: var(--space-4xl) 0 var(--space-3xl);
+  }
+
+  .section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-2xl);
+  }
+
+  .section-head h2 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .section-head .btn {
+    flex-shrink: 0;
+  }
+
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+    list-style: none;
+  }
+
+  .service-card {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--color-white);
+    border-top: 3px solid var(--color-primary);
+  }
+
+  .service-card h3 {
+    font-size: 1.0625rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  .price {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .window {
+    margin-top: var(--space-xs);
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+  }
+
+  /* ── Service area ─────────────────────────────────────────────── */
+
+  .area {
+    padding: var(--space-3xl) 0;
+  }
+
+  .area-inner {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .area h2 {
     margin-bottom: var(--space-md);
   }
+
+  .area p {
+    color: var(--color-gray-700);
+    max-width: 56ch;
+  }
+
+  .area .btn {
+    margin-top: var(--space-lg);
+  }
+
+  .town-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm) var(--space-md);
+    list-style: none;
+    padding: var(--space-lg);
+    background: var(--color-gray-50);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-gray-200);
+  }
+
+  .town-list li {
+    padding-left: 1.1rem;
+    position: relative;
+    font-size: 0.9375rem;
+  }
+
+  .town-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55em;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 50%;
+    background: var(--color-primary);
+  }
+
+  /* ── How it works ─────────────────────────────────────────────── */
+
+  .how {
+    padding: var(--space-3xl) 0;
+  }
+
+  .how h2 {
+    margin-bottom: var(--space-2xl);
+  }
+
+  .how-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .how-card {
+    padding: var(--space-xl);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--color-white);
+  }
+
+  .how-card-alt {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-white);
+  }
+
+  .how-card-alt h3 {
+    color: var(--color-white);
+  }
+
+  .how-card h3 {
+    margin-bottom: var(--space-md);
+  }
+
+  .steps {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .steps li {
+    font-size: 0.9375rem;
+    color: var(--color-gray-700);
+  }
+
+  .steps strong {
+    color: var(--color-gray-900);
+  }
+
+  /* ── Emergency ────────────────────────────────────────────────── */
+
+  .emergency {
+    padding: var(--space-2xl) 0;
+  }
+
+  .emergency-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2xl);
+    padding: var(--space-xl);
+    background: var(--color-accent-tint);
+    border: 1px solid #f0d8c6;
+    border-radius: var(--radius-lg);
+  }
+
+  .emergency h2 {
+    font-size: 1.5rem;
+    margin: var(--space-sm) 0;
+  }
+
+  .emergency p {
+    max-width: 62ch;
+    color: var(--color-gray-700);
+  }
+
+  .emergency-fee {
+    font-size: 0.9375rem;
+  }
+
+  .emergency .btn {
+    flex-shrink: 0;
+  }
+
+  /* ── Closing CTA ──────────────────────────────────────────────── */
 
   .cta-banner {
     padding: var(--space-3xl) 0;
@@ -77,8 +507,8 @@ const { siteName, header } = settings.data;
   }
 
   .cta-banner p {
-    margin-bottom: var(--space-lg);
-    opacity: 0.9;
+    margin-bottom: var(--space-xl);
+    color: var(--color-primary-tint);
   }
 
   .cta-banner .btn-primary {
@@ -88,7 +518,56 @@ const { siteName, header } = settings.data;
   }
 
   .cta-banner .btn-primary:hover {
-    background: var(--color-gray-100);
-    border-color: var(--color-gray-100);
+    background: var(--color-primary-tint);
+    border-color: var(--color-primary-tint);
+    color: var(--color-primary-dark);
+  }
+
+  /* ── Responsive ───────────────────────────────────────────────── */
+
+  @media (max-width: 900px) {
+    .hero-inner,
+    .area-inner,
+    .how-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .hero {
+      padding-bottom: var(--space-3xl);
+    }
+
+    .service-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .strip-inner {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .section-head {
+      flex-direction: column;
+      align-items: start;
+    }
+
+    .emergency-inner {
+      flex-direction: column;
+      align-items: start;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .service-grid,
+    .strip-inner,
+    .town-list {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-actions .btn,
+    .section-head .btn,
+    .area .btn,
+    .emergency .btn,
+    .cta-banner .btn {
+      width: 100%;
+    }
   }
 </style>

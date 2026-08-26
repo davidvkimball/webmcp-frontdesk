@@ -1,42 +1,230 @@
 ---
+/**
+ * About.
+ *
+ * Carries the demonstration-business disclosure in the site's own voice and
+ * at the top of the page, not in fine print at the bottom. The licence
+ * number is deliberately not in the real Washington L&I format, because a
+ * plausible fake would be a fake licence presented as real.
+ */
 import Layout from '@layouts/Layout.astro';
 import { getEntry } from 'astro:content';
+import { BUSINESS, HOURS, AREA } from '@lib/business';
 
 const settings = await getEntry('settings', 'site');
 const { siteName } = settings.data;
+
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
+const years = new Date().getFullYear() - BUSINESS.established;
 ---
 
 <Layout title={`About | ${siteName}`}>
   <section class="page-header">
     <div class="container">
-      <h1>About Us</h1>
-      <p>Replace with your story.</p>
+      <span class="eyebrow">About</span>
+      <h1>Three people, two vans, one valley</h1>
+      <p class="lede">
+        {BUSINESS.owner} has been fixing plumbing around Puyallup since {BUSINESS.established}. The shop has stayed small on purpose, and that decision explains almost everything else on this site.
+      </p>
     </div>
   </section>
 
-  <section class="page-content">
+  <section class="disclosure-section">
     <div class="container">
-      <p>This is a placeholder page. Edit <code>src/pages/about.astro</code> or wire it to a CMS collection for editable content.</p>
+      <div class="disclosure">
+        <span class="badge badge-accent">Read this first</span>
+        <h2>This plumber is not real</h2>
+        <p>
+          Clarks Creek Plumbing is a demonstration business built for the WebMCP challenge. The tools on this site are real and working. The plumber is not.
+        </p>
+        <p>
+          Everything below is written the way a real shop would write it, because the point of the demonstration is a site an AI agent can actually book against. But there is no van, nobody is on call, and the phone number on this page is in the 555 range that exists so fiction does not ring a stranger's house. Do not send it your water heater problem.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="story">
+    <div class="container story-inner">
+      <div class="prose">
+        <h2>How the shop runs</h2>
+        <p>
+          {BUSINESS.owner} is a journeyman plumber and has run this business for {years} years out of {BUSINESS.base}. The crew is {BUSINESS.crew} people: Dale, one journeyman and one apprentice, in two vans. There is no office staff and no answering service.
+        </p>
+        <p>
+          That is worth saying plainly, because it is the reason a small shop is hard to reach. When all three of us are under a house or behind a wall, the phone rings out. Calls get missed, voicemails pile up, and the customer with a running toilet books whoever picked up first. Nobody chose that, it is just what happens when the people doing the work are the same people answering the phone.
+        </p>
+        <p>
+          So the schedule lives on this site instead of in someone's head. The windows you see are the windows that are genuinely open, the prices are ranges rather than invented certainties, and a request holds a slot until Dale confirms it. That last part is not automated and never will be: a booking is only real once the shop has said yes.
+        </p>
+
+        <h2>How we price work</h2>
+        <p>
+          Every job gets a range, not a number, until somebody has looked at it. A drain that clears in twenty minutes and a drain that turns out to be a collapsed line under the driveway both start as the same phone call, and pretending otherwise just moves the bad news to the end of the visit.
+        </p>
+        <p>
+          The diagnostic fee is {`$${HOURS.diagnosticUsd}`} and it comes off the bill when we do the repair on the same visit. After-hours emergency callout is {`$${HOURS.emergencyCalloutUsd}`} and it is applied to the repair rather than added to it. If your address falls in the extended part of our service area there is a {`$${AREA.travelFeeUsd}`} travel fee, and you hear about it before we drive out, not on the invoice.
+        </p>
+
+        <h2>What we will not do</h2>
+        <p>
+          We do not sell maintenance plans. We do not quote a repipe over the phone. We do not take a job in a town that would put a van 40 minutes away from everyone else booked that day, because the cost of that lands on the next customer rather than on us. When somewhere is out of range we say so and name a shop closer to you.
+        </p>
+      </div>
+
+      <aside class="side">
+        <div class="side-card">
+          <h3>Licence and registration</h3>
+          <p class="mono">{BUSINESS.license.number}</p>
+          <p class="side-note">
+            State of {BUSINESS.license.state}. {BUSINESS.license.note}
+          </p>
+          <p class="side-note">
+            A real Washington contractor registration number looks nothing like this, and that is deliberate. Inventing one in the correct format would be a fake licence presented as a real one.
+          </p>
+        </div>
+
+        <div class="side-card">
+          <h3>Hours</h3>
+          <ul class="hours">
+            <li>{HOURS.display.weekdays}</li>
+            <li>{HOURS.display.saturday}</li>
+            <li>Sunday: {HOURS.display.sunday.toLowerCase()}</li>
+          </ul>
+          <p class="side-note">{HOURS.emergency}</p>
+        </div>
+
+        <div class="side-card">
+          <h3>Reaching us</h3>
+          <p>
+            <a href={telHref}>{BUSINESS.phone}</a><br />
+            <a href="/contact/">Request a visit</a>
+          </p>
+          <p class="side-note">
+            Mobile business, no storefront and no public address. The vans work out of {BUSINESS.base}.
+          </p>
+        </div>
+      </aside>
     </div>
   </section>
 </Layout>
 
 <style>
   .page-header {
-    padding: var(--space-3xl) 0 var(--space-xl);
+    padding: var(--space-3xl) 0 var(--space-2xl);
+    background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-md);
+  }
+
+  .disclosure-section {
+    padding-bottom: var(--space-2xl);
+  }
+
+  .disclosure {
+    padding: var(--space-xl);
+    background: var(--color-accent-tint);
+    border: 1px solid #f0d8c6;
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+  }
+
+  .disclosure h2 {
+    font-size: 1.5rem;
+    margin: var(--space-sm) 0 var(--space-md);
+  }
+
+  .disclosure p {
+    max-width: 72ch;
+    color: var(--color-gray-700);
+  }
+
+  .disclosure p:first-of-type {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--color-gray-900);
+  }
+
+  .story {
+    padding-bottom: var(--space-3xl);
+  }
+
+  .story-inner {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .prose h2 {
+    font-size: 1.5rem;
+    margin-bottom: var(--space-md);
+  }
+
+  .prose h2 + p {
+    margin-top: 0;
+  }
+
+  .prose h2:not(:first-child) {
+    margin-top: var(--space-2xl);
+  }
+
+  .prose p {
+    color: var(--color-gray-700);
+    max-width: 68ch;
+  }
+
+  .side {
+    display: grid;
+    gap: var(--space-lg);
+    position: sticky;
+    top: var(--space-3xl);
+  }
+
+  .side-card {
+    padding: var(--space-lg);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
     background: var(--color-gray-50);
-    text-align: center;
   }
 
-  .page-header p {
+  .side-card h3 {
+    font-size: 0.8125rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: var(--space-sm);
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .side-note {
+    font-size: 0.8125rem;
     color: var(--color-gray-500);
-    font-size: 1.125rem;
-    margin-top: var(--space-sm);
+    line-height: 1.55;
   }
 
-  .page-content {
-    padding: var(--space-3xl) 0;
-    max-width: 720px;
-    margin: 0 auto;
+  .hours {
+    list-style: none;
+    display: grid;
+    gap: var(--space-xs);
+    font-size: 0.9375rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  @media (max-width: 900px) {
+    .story-inner {
+      grid-template-columns: 1fr;
+    }
+
+    .side {
+      position: static;
+    }
   }
 </style>

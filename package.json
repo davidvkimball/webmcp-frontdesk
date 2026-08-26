@@ -19,6 +19,7 @@
     "@astrojs/markdown-remark": "^7.2.4",
     "@astrojs/netlify": "^8.2.4",
     "@astrojs/sitemap": "^3.7.3",
+    "@netlify/blobs": "^11.0.1",
     "astro": "^7.2.6",
     "sharp": "^0.35.3"
   },

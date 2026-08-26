@@ -1,0 +1,322 @@
+---
+/**
+ * Service area.
+ *
+ * The two lists are computed at build time from the same lookup table and the
+ * same great-circle maths the check_service_area tool uses, so a town cannot
+ * be in one band on the page and another band in a tool response.
+ */
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+import { BUSINESS, AREA, PLACES, BASE_POINT, milesBetween, coverageFor } from '@lib/business';
+
+const settings = await getEntry('settings', 'site');
+const { siteName } = settings.data;
+
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
+const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+const measured = Object.entries(PLACES)
+  .map(([name, place]) => ({
+    name: titleCase(name),
+    miles: milesBetween(BASE_POINT, place),
+  }))
+  .sort((a, b) => a.miles - b.miles);
+
+const core = measured.filter((t) => t.miles <= AREA.coreMiles);
+const extended = measured.filter((t) => t.miles > AREA.coreMiles && t.miles <= AREA.extendedMiles);
+const outside = measured.filter((t) => t.miles > AREA.extendedMiles);
+
+/** The worked example from the refusal path, computed rather than written. */
+const seattle = coverageFor('Seattle');
+const seattleMiles = seattle.covered === false && seattle.reason === 'OUTSIDE_SERVICE_AREA' ? seattle.miles : 0;
+const seattleNearest = seattle.covered === false && seattle.reason === 'OUTSIDE_SERVICE_AREA' ? seattle.nearest : null;
+
+const fmt = (miles: number) => `${miles.toFixed(1)} mi`;
+---
+
+<Layout title={`Service area | ${siteName}`}>
+  <section class="page-header">
+    <div class="container">
+      <span class="eyebrow">Service area</span>
+      <h1>Where the vans go</h1>
+      <p class="lede">
+        Everything is measured from downtown Puyallup. Inside {AREA.coreMiles} miles there is no travel fee. Between {AREA.coreMiles} and {AREA.extendedMiles} miles there is a {usd(AREA.travelFeeUsd)} one, quoted before we drive. Past {AREA.extendedMiles} miles we tell you so and name someone closer.
+      </p>
+    </div>
+  </section>
+
+  <section class="bands">
+    <div class="container">
+      <div class="band-note">
+        <h2>These are straight-line miles</h2>
+        <p>
+          Every distance on this page is measured in a straight line from downtown Puyallup, not along the road. Road distance runs roughly 1.3 to 1.5 times higher, which is why the bands look tighter than a drive time would suggest. Federal Way is {fmt(measured.find((t) => t.name === 'Federal Way')!.miles)} in a straight line and about 14 by road, and it is comfortably in the core area either way.
+        </p>
+        <p>
+          We work in straight lines because it is the only measure that is the same for everybody. A drive time band would move with the traffic on 512 and would mean one thing at 6am and something else entirely at 5pm.
+        </p>
+      </div>
+
+      <div class="band-grid">
+        <div class="band band-core">
+          <div class="band-head">
+            <span class="badge">No travel fee</span>
+            <h2>Core area</h2>
+            <p class="band-sub">Within {AREA.coreMiles} straight-line miles of Puyallup</p>
+          </div>
+          <ul class="town-list">
+            {core.map((town) => (
+              <li>
+                <span class="town-name">{town.name}</span>
+                <span class="town-miles">{fmt(town.miles)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="band band-extended">
+          <div class="band-head">
+            <span class="badge badge-accent">{usd(AREA.travelFeeUsd)} travel fee</span>
+            <h2>Extended area</h2>
+            <p class="band-sub">Between {AREA.coreMiles} and {AREA.extendedMiles} straight-line miles</p>
+          </div>
+          <ul class="town-list">
+            {extended.map((town) => (
+              <li>
+                <span class="town-name">{town.name}</span>
+                <span class="town-miles">{fmt(town.miles)}</span>
+              </li>
+            ))}
+          </ul>
+          <p class="band-foot">
+            The fee is stated up front, before anything is booked. It covers the drive, not the work, and it does not change the price of the job itself.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="outside">
+    <div class="container outside-inner">
+      <div>
+        <span class="eyebrow">Outside the area</span>
+        <h2>When the answer is no</h2>
+        <p>
+          Past {AREA.extendedMiles} miles we say no, and we say it straight away rather than three phone calls later. A van that far out is an hour of the day gone each way, and that hour comes out of the next customer's window rather than ours.
+        </p>
+        <p>
+          A no is a real answer, not an error. It comes with the distance and the nearest town we do cover, measured from you rather than from us.
+        </p>
+        {seattleNearest && (
+          <blockquote class="example">
+            Seattle is about {Math.round(seattleMiles)} miles from Puyallup, which is outside our service area. The nearest place we do cover is {seattleNearest.name}, roughly {Math.round(seattleNearest.miles)} miles from there.
+          </blockquote>
+        )}
+      </div>
+      <ul class="outside-list">
+        {outside.map((town) => (
+          <li>
+            <span class="town-name">{town.name}</span>
+            <span class="town-miles">{fmt(town.miles)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="not-listed">
+    <div class="container container-narrow">
+      <h2>Town not on the list?</h2>
+      <p>
+        The lists above are the places we get asked about most, not the whole map. If your town is not here, give us the city name or the ZIP code and we will measure it rather than guess. Everything from {core[0].name} out to {extended[extended.length - 1].name} is fair game, and plenty of smaller places in between are too.
+      </p>
+      <div class="not-listed-actions">
+        <a href="/contact/" class="btn btn-primary" data-testid="button-area-contact">Ask about your address</a>
+        <a href={telHref} class="btn btn-secondary" data-testid="button-area-call">Call {BUSINESS.phone}</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-header {
+    padding: var(--space-3xl) 0 var(--space-2xl);
+    background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-md);
+  }
+
+  .bands {
+    padding-bottom: var(--space-3xl);
+  }
+
+  .band-note {
+    max-width: 72ch;
+    margin-bottom: var(--space-2xl);
+  }
+
+  .band-note h2 {
+    font-size: 1.375rem;
+    margin-bottom: var(--space-sm);
+  }
+
+  .band-note p {
+    color: var(--color-gray-700);
+  }
+
+  .band-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+    align-items: start;
+  }
+
+  .band {
+    padding: var(--space-xl);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-gray-200);
+    background: var(--color-white);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .band-core {
+    border-top: 3px solid var(--color-primary);
+  }
+
+  .band-extended {
+    border-top: 3px solid var(--color-accent);
+  }
+
+  .band-head h2 {
+    font-size: 1.375rem;
+    margin: var(--space-sm) 0 var(--space-xs);
+  }
+
+  .band-sub {
+    font-size: 0.9375rem;
+    color: var(--color-gray-500);
+    margin-bottom: var(--space-lg);
+  }
+
+  .town-list,
+  .outside-list {
+    list-style: none;
+    display: grid;
+    gap: 0;
+  }
+
+  .town-list li,
+  .outside-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-block: 0.55rem;
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  .town-list li:last-child,
+  .outside-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .town-name {
+    font-weight: 600;
+  }
+
+  .town-miles {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+    white-space: nowrap;
+  }
+
+  .band-foot {
+    margin-top: var(--space-lg);
+    font-size: 0.875rem;
+    color: var(--color-gray-500);
+  }
+
+  .outside {
+    padding: var(--space-3xl) 0;
+    background: var(--color-gray-50);
+    border-block: 1px solid var(--color-gray-200);
+  }
+
+  .outside-inner {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .outside h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .outside p {
+    color: var(--color-gray-700);
+    max-width: 60ch;
+  }
+
+  .example {
+    margin-top: var(--space-lg);
+    padding: var(--space-lg);
+    border-left: 3px solid var(--color-primary);
+    background: var(--color-white);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    font-size: 0.9375rem;
+    color: var(--color-gray-700);
+  }
+
+  .outside-list {
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+  }
+
+  .not-listed {
+    padding: var(--space-3xl) 0;
+    text-align: center;
+  }
+
+  .not-listed h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .not-listed p {
+    color: var(--color-gray-700);
+    margin-inline: auto;
+  }
+
+  .not-listed-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    justify-content: center;
+    margin-top: var(--space-xl);
+  }
+
+  @media (max-width: 900px) {
+    .band-grid,
+    .outside-inner {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .band,
+    .outside-list {
+      padding: var(--space-lg);
+    }
+
+    .not-listed-actions .btn {
+      width: 100%;
+    }
+  }
+</style>

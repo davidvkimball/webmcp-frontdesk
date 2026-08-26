@@ -2,60 +2,190 @@
 /**
  * Registers this site's tools with the browser's WebMCP model context.
  *
- * Lifecycle note: the site uses Astro's ClientRouter, so a normal bundled
- * script would run once and then go stale across client-side navigations.
- * Registration therefore happens on every astro:page-load and is torn down
- * on astro:before-swap through an AbortController, which is the documented
- * unregister path rather than a workaround.
+ * Lifecycle: the site uses Astro's ClientRouter, so a plain bundled script
+ * would run once and then go stale across client-side navigations.
+ * Registration happens on every astro:page-load and is torn down on
+ * astro:before-swap through an AbortController, which is the documented
+ * unregister path rather than a workaround. That same mechanism is what the
+ * conversation-scoped tools will later hang off.
  */
 ---
 
 <script>
-  const TOOLS_ENDPOINT = '/api/service-area';
+  type ToolSpec = {
+    name: string;
+    description: string;
+    endpoint: string;
+    properties: Record<string, { type: string; description: string }>;
+    required: string[];
+    readOnly: boolean;
+  };
+
+  /**
+   * Descriptions are read by the model to decide whether and how to call a
+   * tool, so they are written as prompts rather than as documentation. Each
+   * one says what the tool does, when to reach for it, and what it gives back.
+   */
+  const TOOLS: ToolSpec[] = [
+    {
+      name: 'check_service_area',
+      description:
+        'Check whether Clarks Creek Plumbing travels to a given address, city or ZIP code in the Puyallup, Washington area. Call this before checking availability or booking anything, because nothing else matters if the plumber will not drive there. Returns whether the location is covered, how far it is from the shop, and any travel fee that applies.',
+      endpoint: '/api/service-area',
+      properties: {
+        location: {
+          type: 'string',
+          description:
+            'Where the job is. A city name, a 5 digit ZIP code, or a street address. For example "Puyallup", "98371", or "1204 39th Ave SE, Puyallup WA".',
+        },
+      },
+      required: ['location'],
+      readOnly: true,
+    },
+    {
+      name: 'check_availability',
+      description:
+        'Find real open appointment windows on a given date. Every window returned can actually be booked, and windows already taken are never returned. Call this after confirming the address is in the service area. Returns two hour arrival windows, or a clear reason when the day is closed or fully booked.',
+      endpoint: '/api/availability',
+      properties: {
+        date: {
+          type: 'string',
+          description:
+            'The day to check, in ISO format YYYY-MM-DD. Convert whatever the customer said, such as "tomorrow" or "next Tuesday", into this format first.',
+        },
+        service: {
+          type: 'string',
+          description:
+            'What is wrong, in the words the customer used. For example "clogged kitchen drain", "no hot water", or "toilet running". Optional, but it lets the answer flag emergency handling.',
+        },
+      },
+      required: ['date'],
+      readOnly: true,
+    },
+    {
+      name: 'estimate_job',
+      description:
+        'Get the price range for a plumbing job before booking it. Returns a low and high figure plus the diagnostic fee, and is explicit that the final price comes after someone sees the job. Use this when the customer asks what something costs. Do not present the range as a quote.',
+      endpoint: '/api/estimate',
+      properties: {
+        job: {
+          type: 'string',
+          description:
+            'The job or the symptom, in plain words. For example "water heater replacement", "clogged drain", "leak under the sink".',
+        },
+        details: {
+          type: 'string',
+          description:
+            'Anything else the customer mentioned that affects the job, such as the age of the fixture or whether water is actively running. Optional.',
+        },
+      },
+      required: ['job'],
+      readOnly: true,
+    },
+    {
+      name: 'describe_services',
+      description:
+        'Get everything about the business at once: the services offered with price ranges, opening hours, the service area, the emergency policy, and licence details. Call this to answer general questions about the business rather than guessing from the page text.',
+      endpoint: '/api/services',
+      properties: {},
+      required: [],
+      readOnly: true,
+    },
+    {
+      name: 'book_appointment',
+      description:
+        'Request an appointment in a specific open window. This does NOT confirm the booking. It holds the slot, texts the owner, and returns a reference while it waits for him to confirm, usually within a few minutes. Tell the customer it is pending rather than booked. Check the service area and availability first, and only pass a window this site actually returned.',
+      endpoint: '/api/book',
+      properties: {
+        name: { type: 'string', description: 'The full name of the customer.' },
+        phone: { type: 'string', description: 'A phone number the plumber can reach them on.' },
+        address: { type: 'string', description: 'The street address where the work is needed, including the city.' },
+        service: { type: 'string', description: 'What is wrong, in the words the customer used.' },
+        date: { type: 'string', description: 'The appointment date in ISO format YYYY-MM-DD.' },
+        slot: { type: 'string', description: 'The start of the arrival window in 24 hour HH:mm form, exactly as check_availability returned it. For example "08:00".' },
+      },
+      required: ['name', 'phone', 'address', 'service', 'date', 'slot'],
+      readOnly: false,
+    },
+  ];
 
   let controller: AbortController | null = null;
+
+  function register(spec: ToolSpec, signal: AbortSignal) {
+    return document.modelContext!.registerTool(
+      {
+        name: spec.name,
+        description: spec.description,
+        inputSchema: {
+          type: 'object',
+          properties: spec.properties,
+          required: spec.required,
+        },
+        annotations: {
+          // Only ever true where it is actually true. Claiming read-only on a
+          // tool that changes state makes the browser skip a confirmation it
+          // should have shown, which is a lie with consequences.
+          readOnlyHint: spec.readOnly,
+        },
+        execute: async (params, { signal: callSignal }) => {
+          const res = await fetch(spec.endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(params ?? {}),
+            // Passing the agent's signal through means a cancelled agent
+            // request cancels the network call, rather than leaving it running
+            // and discarding the answer.
+            signal: callSignal,
+          });
+          return JSON.stringify(await res.json());
+        },
+      },
+      { signal }
+    );
+  }
+
+  /**
+   * Gate test for the conversation-scoped tool surface.
+   *
+   * Visit any page with ?lab=1 and a tool appears eight seconds after load,
+   * well after the agent has seen the page. If the agent can call it without a
+   * reload, tools can be registered mid-conversation and the stateful tool
+   * surface idea is viable. If it cannot, we find that out in fifteen minutes
+   * rather than after a day of building on it. Remove before submission.
+   */
+  function scheduleLabTool(signal: AbortSignal) {
+    if (!new URLSearchParams(location.search).has('lab')) return;
+    const timer = setTimeout(() => {
+      if (signal.aborted) return;
+      document.modelContext!.registerTool(
+        {
+          name: 'lab_late_registration_probe',
+          description:
+            'A test tool that was registered eight seconds AFTER the page finished loading. If you can see and call this tool, it proves that tools registered mid-conversation are visible without a page reload. Call it and report exactly what it returns.',
+          inputSchema: { type: 'object', properties: {}, required: [] },
+          annotations: { readOnlyHint: true },
+          execute: async () =>
+            JSON.stringify({
+              ok: true,
+              result: 'LATE REGISTRATION VISIBLE',
+              meaning: 'This tool did not exist when the page loaded. The agent picked it up mid-conversation.',
+            }),
+        },
+        { signal }
+      );
+    }, 8000);
+    signal.addEventListener('abort', () => clearTimeout(timer));
+  }
 
   async function registerTools() {
     if (!document.modelContext) return; // No agent present. Nothing to do.
 
     controller?.abort();
     controller = new AbortController();
+    const { signal } = controller;
 
-    await document.modelContext.registerTool(
-      {
-        name: 'check_service_area',
-        description:
-          'Check whether Clarks Creek Plumbing travels to a given address, city or ZIP code in the Puyallup, Washington area. Call this before checking availability or booking anything, because nothing else matters if the plumber will not drive there. Returns whether the location is covered, how far it is from the shop, and any travel fee that applies.',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            location: {
-              type: 'string',
-              description:
-                'Where the job is. A city name, a 5 digit ZIP code, or a street address. For example "Puyallup", "98371", or "1204 39th Ave SE, Puyallup WA".',
-            },
-          },
-          required: ['location'],
-        },
-        annotations: {
-          // Honest: this reads a lookup table and changes nothing.
-          readOnlyHint: true,
-        },
-        execute: async (params, { signal }) => {
-          const res = await fetch(TOOLS_ENDPOINT, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ location: params?.location ?? '' }),
-            // Passing the agent's signal through means a cancelled agent
-            // request actually cancels the network call rather than leaving
-            // it running and discarding the answer.
-            signal,
-          });
-          return JSON.stringify(await res.json());
-        },
-      },
-      { signal: controller.signal }
-    );
+    await Promise.all(TOOLS.map((spec) => register(spec, signal)));
+    scheduleLabTool(signal);
   }
 
   document.addEventListener('astro:page-load', registerTools);

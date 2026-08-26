@@ -1,34 +1,40 @@
 /* ── Design tokens ─────────────────────────────────────────────────
-   Replace these with client brand values. Every component references
-   these variables. Change once, update everywhere.
+   Clarks Creek Plumbing. Deep creek teal for the brand, a warm copper
+   for anything urgent, and a slightly warm neutral ramp so the pages
+   read like a working trade business rather than a SaaS landing page.
+   Every component references these variables.
    ────────────────────────────────────────────────────────────────── */
 
 :root {
   /* Brand colors */
-  --color-primary: #2563eb;
-  --color-primary-dark: #1d4ed8;
-  --color-secondary: #64748b;
-  --color-accent: #f59e0b;
+  --color-primary: #0f4c5c;
+  --color-primary-dark: #0a3542;
+  --color-primary-tint: #e7f0f2;
+  --color-primary-line: #c5dade;
+  --color-secondary: #475569;
+  --color-accent: #b0450f;
+  --color-accent-dark: #8b360b;
+  --color-accent-tint: #fdf1e8;
 
   /* Neutrals */
   --color-white: #ffffff;
-  --color-black: #0f172a;
-  --color-gray-50: #f8fafc;
-  --color-gray-100: #f1f5f9;
-  --color-gray-200: #e2e8f0;
-  --color-gray-300: #cbd5e1;
-  --color-gray-500: #64748b;
-  --color-gray-700: #334155;
-  --color-gray-900: #0f172a;
+  --color-black: #10222a;
+  --color-gray-50: #f7f9f9;
+  --color-gray-100: #eef2f3;
+  --color-gray-200: #e0e7e9;
+  --color-gray-300: #c6d1d4;
+  --color-gray-500: #5f7078;
+  --color-gray-700: #33474f;
+  --color-gray-900: #10222a;
 
   /* Semantic */
-  --color-success: #22c55e;
-  --color-error: #ef4444;
+  --color-success: #17803d;
+  --color-error: #b4231d;
 
   /* Typography */
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-heading: var(--font-sans);
-  --font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
+  --font-mono: ui-monospace, "Cascadia Code", "Fira Code", monospace;
 
   /* Spacing scale */
   --space-xs: 0.25rem;
@@ -41,13 +47,18 @@
   --space-4xl: 6rem;
 
   /* Layout */
-  --container-max: 1200px;
+  --container-max: 1120px;
   --container-padding: var(--space-lg);
 
   /* Borders */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 1rem;
+  --radius-pill: 999px;
+
+  /* Elevation. Kept shallow: this is a plumber, not a dashboard. */
+  --shadow-sm: 0 1px 2px rgba(16, 34, 42, 0.06);
+  --shadow-md: 0 6px 20px rgba(16, 34, 42, 0.08);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -84,7 +95,7 @@ body {
   min-height: 100dvh;
   font-family: var(--font-sans);
   font-weight: 400;
-  line-height: 1.6;
+  line-height: 1.65;
   color: var(--color-gray-900);
   background: var(--color-white);
   -webkit-font-smoothing: antialiased;
@@ -114,6 +125,28 @@ a:hover {
   color: var(--color-primary-dark);
 }
 
+/* ── Motion ────────────────────────────────────────────────────────
+   Anything that moves needs a working fallback, so the switch below
+   turns off smooth scrolling and shortens every transition to
+   effectively nothing. Nothing on the site depends on motion to be
+   readable or operable.
+   ────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ── Focus styles (accessible) ─────────────────────────────────── */
 
 :focus-visible {
@@ -130,13 +163,15 @@ a:hover {
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   color: var(--color-black);
+  text-wrap: balance;
 }
 
-h1 { font-size: clamp(2rem, 5vw, 3rem); }
-h2 { font-size: clamp(1.5rem, 4vw, 2.25rem); }
-h3 { font-size: clamp(1.25rem, 3vw, 1.75rem); }
+h1 { font-size: clamp(2.125rem, 5vw, 3.125rem); }
+h2 { font-size: clamp(1.625rem, 4vw, 2.25rem); }
+h3 { font-size: clamp(1.125rem, 3vw, 1.375rem); }
 
 p + p {
   margin-top: var(--space-md);
@@ -147,6 +182,13 @@ p + p {
 .container {
   width: 100%;
   max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: var(--container-padding);
+}
+
+.container-narrow {
+  width: 100%;
+  max-width: 760px;
   margin-inline: auto;
   padding-inline: var(--container-padding);
 }
@@ -163,7 +205,60 @@ p + p {
   border-width: 0;
 }
 
-/* ── Buttons ───────────────────────────────────────────────────── */
+/* Small uppercase label above a heading. */
+.eyebrow {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+/* Opening paragraph under a page title. */
+.lede {
+  font-size: 1.125rem;
+  color: var(--color-gray-700);
+  max-width: 62ch;
+}
+
+/* A short rule that carries brand colour without a heavy border. */
+.rule {
+  height: 3px;
+  width: 3.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.card {
+  padding: var(--space-lg);
+  background: var(--color-white);
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-dark);
+}
+
+.badge-accent {
+  background: var(--color-accent-tint);
+  color: var(--color-accent-dark);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────
+   Hover states change colour, border and shadow only. No scale or
+   grow transforms anywhere, on any state.
+   ────────────────────────────────────────────────────────────────── */
 
 .btn {
   display: inline-flex;
@@ -175,11 +270,13 @@ p + p {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1;
+  text-align: center;
   text-decoration: none;
   border: 2px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .btn-primary {
@@ -192,6 +289,7 @@ p + p {
   background: var(--color-primary-dark);
   border-color: var(--color-primary-dark);
   color: var(--color-white);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
@@ -203,4 +301,50 @@ p + p {
 .btn-secondary:hover {
   background: var(--color-primary);
   color: var(--color-white);
+}
+
+.btn-accent {
+  background: var(--color-accent);
+  color: var(--color-white);
+  border-color: var(--color-accent);
+}
+
+.btn-accent:hover {
+  background: var(--color-accent-dark);
+  border-color: var(--color-accent-dark);
+  color: var(--color-white);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-lg {
+  padding: 0.9rem 1.75rem;
+  font-size: 1.0625rem;
+}
+
+/* ── Site chrome ────────────────────────────────────────────────
+   Header and Footer ship structural styles only, so the brand edges
+   live here.
+   ────────────────────────────────────────────────────────────────── */
+
+.site-header {
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.site-header .nav-link {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.site-header .nav-link:hover,
+.site-header .nav-link.active {
+  color: var(--color-primary);
+}
+
+.site-footer {
+  margin-top: var(--space-3xl);
+  padding-block: var(--space-xl);
+  border-top: 1px solid var(--color-gray-200);
+  background: var(--color-gray-50);
+  color: var(--color-gray-500);
 }

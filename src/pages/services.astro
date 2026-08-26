@@ -1,0 +1,370 @@
+---
+/**
+ * Services and price ranges.
+ *
+ * The list, the ranges and the durations are read from src/lib/business.ts,
+ * which is the same module the estimate_job tool answers from. The only copy
+ * held here is the description of what moves each range, which is trade
+ * detail rather than a business fact.
+ */
+import Layout from '@layouts/Layout.astro';
+import { getEntry } from 'astro:content';
+import { BUSINESS, HOURS, SERVICES, AREA } from '@lib/business';
+
+const settings = await getEntry('settings', 'site');
+const { siteName } = settings.data;
+
+const usd = (n: number) => `$${n.toLocaleString('en-US')}`;
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
+
+/** What the job involves, and what pushes it up or down inside the range. */
+const detail: Record<string, { does: string; moves: string }> = {
+  drain_clearing: {
+    does: 'Kitchen, bath, laundry or the main line. Cable or jet depending on what is down there, and a camera down the line when it has backed up more than once.',
+    moves: 'Where the blockage sits. A branch line off a kitchen sink is the bottom of the range. A main line with no accessible cleanout is the top.',
+  },
+  water_heater_tank: {
+    does: 'A 40 or 50 gallon tank swapped out, the old unit hauled away, and the connections brought up to current code before we leave.',
+    moves: 'Tank size, venting, and how much of the existing install has to be corrected. Tight closets and attic installs cost more because the labour is real.',
+  },
+  water_heater_tankless: {
+    does: 'Gas or electric tankless, including the gas line sizing and the venting run that most retrofits turn out to need.',
+    moves: 'Whether the existing gas line can carry the unit and how far the vent has to travel. A straight run through an exterior wall is cheap. A three storey vent is not.',
+  },
+  toilet_replacement: {
+    does: 'Old fixture out, flange reset if it needs it, new wax and supply line, old toilet hauled away.',
+    moves: 'The fixture you pick and the state of the flange underneath. A rotted subfloor is the one that moves it most.',
+  },
+  leak_repair: {
+    does: 'Finding it first. Under a slab, inside a wall, behind a fixture, or in a line you cannot see. Then opening only what has to be opened.',
+    moves: 'How much has to come apart to reach the pipe. A visible supply line under a sink is a short visit. A slab leak is not.',
+  },
+  sump_pump: {
+    does: 'Replacement pump, check valve and float switch, tested on a full basin before we call it done.',
+    moves: 'Pump capacity and whether the discharge line needs redoing. Undersized discharge is why a lot of pumps get replaced twice.',
+  },
+  repipe: {
+    does: 'The whole house in PEX, usually pulling out galvanized that has closed up to the diameter of a straw.',
+    moves: 'Square footage, number of bathrooms, and access. A single storey house on a crawlspace is straightforward. Two storeys on a slab is the top of the range.',
+  },
+};
+---
+
+<Layout title={`Services and pricing | ${siteName}`}>
+  <section class="page-header">
+    <div class="container">
+      <span class="eyebrow">Services</span>
+      <h1>What we do, and what it costs</h1>
+      <p class="lede">
+        Residential plumbing repair and replacement across the Puyallup valley. Every job below is priced as a range, because the honest number arrives after somebody has looked at it.
+      </p>
+    </div>
+  </section>
+
+  <section class="ranges">
+    <div class="container">
+      <p class="ranges-note">
+        <strong>Ranges, not quotes.</strong> The range covers the ordinary version of the job and the awkward version of the same job. What decides where you land is listed with each one. If something turns up that puts the price outside the range, you hear it before we do the work, not after.
+      </p>
+
+      <ul class="service-list">
+        {SERVICES.map((service) => (
+          <li class="service-row">
+            <div class="row-head">
+              <h2>{service.label}</h2>
+              <p class="price">
+                {usd(service.low)} to {usd(service.high)}
+                <span class="hours-on-site">Usually {service.slots * 2} hours on site</span>
+              </p>
+            </div>
+            <div class="row-body">
+              <p>{detail[service.key]?.does}</p>
+              <p class="moves"><span class="moves-label">What moves the price:</span> {detail[service.key]?.moves}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="fees">
+    <div class="container">
+      <span class="eyebrow">Fees</span>
+      <h2>The three fees, in full</h2>
+      <div class="fee-grid">
+        <div class="fee-card">
+          <p class="fee-amount">{usd(HOURS.diagnosticUsd)}</p>
+          <h3>Diagnostic visit</h3>
+          <p>
+            Charged when we come out to work out what is wrong. Waived entirely if you go ahead with the repair on the same visit, which is what happens most of the time.
+          </p>
+        </div>
+        <div class="fee-card">
+          <p class="fee-amount">{usd(HOURS.emergencyCalloutUsd)}</p>
+          <h3>After-hours emergency callout</h3>
+          <p>
+            For a genuine emergency outside working hours. It is applied to the repair rather than charged on top of it, so the callout is not a second bill.
+          </p>
+        </div>
+        <div class="fee-card">
+          <p class="fee-amount">{usd(AREA.travelFeeUsd)}</p>
+          <h3>Extended area travel</h3>
+          <p>
+            Only for addresses between {AREA.coreMiles} and {AREA.extendedMiles} straight-line miles from Puyallup. Nothing inside {AREA.coreMiles} miles carries it. <a href="/service-area/">Check your town</a>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="scheduling">
+    <div class="container scheduling-inner">
+      <div>
+        <span class="eyebrow">Scheduling</span>
+        <h2>Two hour arrival windows</h2>
+        <p>
+          Windows are two hours wide. Weekday starts run from 8:00am, with the last start at 4:00pm. Saturday starts run from 8:00am with the last start at noon. Sunday is closed for scheduled work.
+        </p>
+        <p>
+          A window is held for you when you request it and confirmed once the shop has checked it against the day. Nothing on this site books itself.
+        </p>
+      </div>
+      <div class="emergency-card">
+        <span class="badge badge-accent">24/7</span>
+        <h3>Emergencies</h3>
+        <p>{HOURS.emergency}</p>
+        <p class="hours-list">
+          {HOURS.display.weekdays}<br />
+          {HOURS.display.saturday}<br />
+          Sunday: {HOURS.display.sunday.toLowerCase()}
+        </p>
+        <a href={telHref} class="btn btn-accent" data-testid="button-services-call">Call {BUSINESS.phone}</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-banner">
+    <div class="container">
+      <h2>Not sure which one you need?</h2>
+      <p>Describe the problem in your own words. Working out which job it is happens to be our part.</p>
+      <a href="/contact/" class="btn btn-primary btn-lg" data-testid="button-services-cta">Request a visit</a>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .page-header {
+    padding: var(--space-3xl) 0 var(--space-2xl);
+    background: linear-gradient(180deg, var(--color-primary-tint) 0%, var(--color-white) 100%);
+  }
+
+  .page-header h1 {
+    margin-bottom: var(--space-md);
+  }
+
+  .ranges {
+    padding-bottom: var(--space-3xl);
+  }
+
+  .ranges-note {
+    max-width: 72ch;
+    margin-bottom: var(--space-2xl);
+    color: var(--color-gray-700);
+  }
+
+  .service-list {
+    list-style: none;
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .service-row {
+    padding: var(--space-lg) var(--space-xl);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+    background: var(--color-white);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .row-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    padding-bottom: var(--space-md);
+    border-bottom: 1px solid var(--color-gray-100);
+  }
+
+  .row-head h2 {
+    font-size: 1.25rem;
+  }
+
+  .price {
+    flex-shrink: 0;
+    text-align: right;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    white-space: nowrap;
+  }
+
+  .hours-on-site {
+    display: block;
+    margin-top: var(--space-xs);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--color-gray-500);
+  }
+
+  .row-body {
+    padding-top: var(--space-md);
+    max-width: 76ch;
+    color: var(--color-gray-700);
+  }
+
+  .moves {
+    font-size: 0.9375rem;
+  }
+
+  .moves-label {
+    font-weight: 700;
+    color: var(--color-gray-900);
+  }
+
+  .fees {
+    padding: var(--space-3xl) 0;
+    background: var(--color-gray-50);
+    border-block: 1px solid var(--color-gray-200);
+  }
+
+  .fees h2 {
+    margin-bottom: var(--space-xl);
+  }
+
+  .fee-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .fee-card {
+    padding: var(--space-lg);
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+  }
+
+  .fee-amount {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .fee-card h3 {
+    font-size: 1rem;
+    margin: var(--space-sm) 0;
+  }
+
+  .fee-card p:last-child {
+    font-size: 0.9375rem;
+    color: var(--color-gray-700);
+  }
+
+  .scheduling {
+    padding: var(--space-3xl) 0;
+  }
+
+  .scheduling-inner {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+
+  .scheduling h2 {
+    margin-bottom: var(--space-md);
+  }
+
+  .scheduling p {
+    color: var(--color-gray-700);
+    max-width: 58ch;
+  }
+
+  .emergency-card {
+    padding: var(--space-xl);
+    background: var(--color-accent-tint);
+    border: 1px solid #f0d8c6;
+    border-radius: var(--radius-lg);
+  }
+
+  .emergency-card h3 {
+    margin: var(--space-sm) 0 var(--space-md);
+  }
+
+  .hours-list {
+    margin-top: var(--space-md);
+    font-size: 0.9375rem;
+  }
+
+  .emergency-card .btn {
+    margin-top: var(--space-lg);
+  }
+
+  .cta-banner {
+    padding: var(--space-3xl) 0;
+    background: var(--color-primary);
+    color: var(--color-white);
+    text-align: center;
+  }
+
+  .cta-banner h2 {
+    color: var(--color-white);
+    margin-bottom: var(--space-sm);
+  }
+
+  .cta-banner p {
+    margin-bottom: var(--space-xl);
+    color: var(--color-primary-tint);
+  }
+
+  .cta-banner .btn-primary {
+    background: var(--color-white);
+    color: var(--color-primary);
+    border-color: var(--color-white);
+  }
+
+  .cta-banner .btn-primary:hover {
+    background: var(--color-primary-tint);
+    border-color: var(--color-primary-tint);
+    color: var(--color-primary-dark);
+  }
+
+  @media (max-width: 900px) {
+    .fee-grid,
+    .scheduling-inner {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .service-row {
+      padding: var(--space-lg);
+    }
+
+    .row-head {
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .price {
+      text-align: left;
+      white-space: normal;
+    }
+
+    .emergency-card .btn,
+    .cta-banner .btn {
+      width: 100%;
+    }
+  }
+</style>
