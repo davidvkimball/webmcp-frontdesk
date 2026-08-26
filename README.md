@@ -75,26 +75,7 @@ This is a deliberate trust boundary, not a missing feature. The agent negotiates
 
 ## How it is implemented
 
-```
-AI assistant (ChatGPT in-app browser, or Chrome 146+ with WebMCP enabled)
-   |
-   |  document.modelContext.registerTool(...)
-   v
-clarks-creek-plumbing.netlify.app
-   |
-   +-- check_service_area  --> /api/service-area   pure geo maths, no state
-   +-- check_availability  --> /api/availability   --> Netlify Blobs
-   +-- estimate_job        --> /api/estimate       pricing rules, no state
-   +-- describe_services   --> /api/services
-   +-- book_appointment    --> /api/book           --> Netlify Blobs
-   |                                                --> Twilio --> owner's phone
-   +-- check_hold_status   --> /api/hold-status         (registered live)
-   +-- cancel-hold         --> /api/cancel-hold         (registered live)
-                                                             |
-                              /api/confirm  <-- "YES" -------+
-                                    |
-                                    +--> customer notified
-```
+![How a booking happens: a customer talks to an AI assistant, which calls tools registered on the website, which hit Netlify Functions backed by Netlify Blobs, which message the owner, who replies YES before anything is booked](media/architecture.png)
 
 - **Astro 7** static site on Netlify, **Netlify Functions** behind every tool
 - **Netlify Blobs** for the schedule and pending holds. No external database

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <rect width="1200" height="800" fill="#f7fafb"/>
+  <rect x="0" y="0" width="1200" height="7" fill="#c2703d"/>
+
+  <text x="60" y="72" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#0d4351">How a booking actually happens</text>
+  <text x="60" y="106" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#5f8b98">Nothing is booked until a person replies. The agent prepares the transaction, the owner commits it.</text>
+
+  <!-- 1 customer -->
+  <rect x="60" y="150" width="215" height="112" rx="12" fill="#ffffff" stroke="#cfdde2" stroke-width="2"/>
+  <text x="82" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#8aa8b2" letter-spacing="2">1  CUSTOMER</text>
+  <text x="82" y="220" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">Talks to an AI</text>
+  <text x="82" y="244" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">assistant</text>
+
+  <!-- 2 browser -->
+  <rect x="330" y="150" width="360" height="330" rx="12" fill="#ffffff" stroke="#0d4351" stroke-width="2.5"/>
+  <text x="354" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#8aa8b2" letter-spacing="2">2  THE WEBSITE</text>
+  <text x="354" y="216" font-family="Consolas, monospace" font-size="16" fill="#0d4351">document.modelContext</text>
+
+  <g font-family="Consolas, monospace" font-size="15" fill="#0d4351">
+    <rect x="354" y="238" width="312" height="32" rx="6" fill="#e8f2f5"/><text x="368" y="260">check_service_area</text>
+    <rect x="354" y="276" width="312" height="32" rx="6" fill="#e8f2f5"/><text x="368" y="298">check_availability</text>
+    <rect x="354" y="314" width="312" height="32" rx="6" fill="#e8f2f5"/><text x="368" y="336">estimate_job</text>
+    <rect x="354" y="352" width="312" height="32" rx="6" fill="#e8f2f5"/><text x="368" y="374">describe_services</text>
+    <rect x="354" y="390" width="312" height="32" rx="6" fill="#fbe6d7" stroke="#c2703d"/><text x="368" y="412">book_appointment</text>
+    <rect x="354" y="428" width="312" height="34" rx="6" fill="#ffffff" stroke="#c2703d" stroke-dasharray="5 4"/>
+    <text x="368" y="450" fill="#a2551f">check_hold_status, cancel_hold</text>
+  </g>
+  <text x="354" y="498" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#a2551f">Dashed pair only exist while a hold is pending</text>
+
+  <!-- 3 backend -->
+  <rect x="745" y="150" width="395" height="200" rx="12" fill="#ffffff" stroke="#cfdde2" stroke-width="2"/>
+  <text x="769" y="188" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#8aa8b2" letter-spacing="2">3  NETLIFY FUNCTIONS</text>
+  <text x="769" y="222" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">Netlify Blobs holds the schedule</text>
+  <text x="769" y="250" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">Strong consistency, conditional</text>
+  <text x="769" y="278" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">writes, so two agents cannot</text>
+  <text x="769" y="306" font-family="Segoe UI, Arial, sans-serif" font-size="18" fill="#123f4c">take the same window</text>
+
+  <!-- 4 owner -->
+  <rect x="745" y="392" width="395" height="150" rx="12" fill="#0d4351"/>
+  <text x="769" y="430" font-family="Segoe UI, Arial, sans-serif" font-size="14" font-weight="700" fill="#7fd4e8" letter-spacing="2">4  THE OWNER</text>
+  <text x="769" y="464" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#ffffff">His phone buzzes with the job</text>
+  <text x="769" y="494" font-family="Segoe UI, Arial, sans-serif" font-size="19" fill="#ffffff">details and a reference.</text>
+  <text x="769" y="524" font-family="Segoe UI, Arial, sans-serif" font-size="19" font-weight="700" fill="#f0a875">He replies YES. Now it is booked.</text>
+
+  <!-- arrows -->
+  <g stroke="#8aa8b2" stroke-width="2.5" fill="none">
+    <path d="M275 206 L322 206" marker-end="url(#a)"/>
+    <path d="M690 250 L737 250" marker-end="url(#a)"/>
+    <path d="M942 350 L942 384" marker-end="url(#a)"/>
+  </g>
+  <path d="M942 542 L942 648 L167 648 L167 272" stroke="#c2703d" stroke-width="2.5" fill="none" stroke-dasharray="6 5" marker-end="url(#b)"/>
+  <text x="330" y="676" font-family="Segoe UI, Arial, sans-serif" font-size="16" fill="#a2551f">the confirmation flows back to the agent, and to the customer</text>
+
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#8aa8b2"/></marker>
+    <marker id="b" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#c2703d"/></marker>
+  </defs>
+
+  <text x="60" y="712" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#5f8b98">Every tool refuses with a reason code, a sentence for the customer, and what to try instead.</text>
+  <text x="60" y="742" font-family="Segoe UI, Arial, sans-serif" font-size="17" fill="#5f8b98">The contact form uses the declarative API. The five above use the imperative one.</text>
+  <text x="60" y="772" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#94b0ba">Clarks Creek Plumbing is a demonstration business built for the OpenAI WebMCP Challenge.</text>
+</svg>
