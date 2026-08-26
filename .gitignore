@@ -30,3 +30,6 @@ _bases/
 
 # Netlify CLI writes this when running netlify dev
 deno.lock
+
+# Submission drafts stay local, not in the public repo
+SUBMISSION.md
