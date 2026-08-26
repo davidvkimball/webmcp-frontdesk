@@ -23,7 +23,7 @@ export type Hold = {
   ref: string;
   slot: string;
   service: string;
-  status: 'held' | 'confirmed' | 'declined';
+  status: 'held' | 'confirmed' | 'declined' | 'cancelled';
   customerName: string;
   /** Needed so the confirm webhook can text the customer back. Never returned by a tool. */
   customerPhone: string;
@@ -37,7 +37,7 @@ const store = () => getStore({ name: 'schedule', consistency: 'strong' });
 const keyFor = (date: string) => `day/${date}`;
 
 export function isLive(hold: Hold, now = Date.now()): boolean {
-  if (hold.status === 'declined') return false;
+  if (hold.status === 'declined' || hold.status === 'cancelled') return false;
   if (hold.status === 'confirmed') return true;
   return Date.parse(hold.expiresAt) > now;
 }
@@ -145,4 +145,20 @@ export async function setHoldStatus(
 export async function listDayKeys(): Promise<string[]> {
   const { blobs } = await store().list({ prefix: 'day/' });
   return blobs.map((b) => b.key.slice('day/'.length)).sort().reverse();
+}
+
+/**
+ * Find a hold by its reference, without the caller needing to know the date.
+ * An agent holding a reference from earlier in a conversation has no reason to
+ * still be holding the date, so asking for both would be a needless refusal.
+ */
+export async function findHold(ref: string): Promise<{ hold: Hold; date: string } | null> {
+  const wanted = String(ref || '').trim().toUpperCase();
+  if (!wanted) return null;
+  for (const date of await listDayKeys()) {
+    const { day } = await readDay(date);
+    const hold = day.holds.find((h) => h.ref.toUpperCase() === wanted);
+    if (hold) return { hold, date };
+  }
+  return null;
 }

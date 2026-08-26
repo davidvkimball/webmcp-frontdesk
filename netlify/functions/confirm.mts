@@ -4,7 +4,8 @@
  * This is the other half of book_appointment. A hold is not an appointment
  * until Dale says so, and this is where he says so. He replies YES and the
  * hold becomes confirmed, NO and it is declined and the window goes straight
- * back on the board.
+ * back on the board. Either way the customer hears about it, because a booking
+ * nobody told the customer about is not a booking.
  *
  * TRUST BOUNDARY. This endpoint is a public URL that flips a booking, so the
  * only thing standing between a stranger and the schedule is who we believe
@@ -22,21 +23,10 @@
  */
 import type { Config, Context } from '@netlify/functions';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getStore } from '@netlify/blobs';
-import { formatSlot, parseBusinessDate } from '../../src/lib/business';
-import { isLive, readDay, type Day, type Hold } from '../../src/lib/schedule';
+import { BUSINESS, formatSlot, parseBusinessDate } from '../../src/lib/business';
+import { isLive, listDayKeys, readDay, setHoldStatus, type Hold } from '../../src/lib/schedule';
 
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-/**
- * The same store and key scheme src/lib/schedule.ts uses. Reads go through
- * that module's readDay so the ETag comes with them; only the status write
- * lives here, because updating a hold in place is not something the booking
- * path ever needs to do.
- */
-const store = () => getStore({ name: 'schedule', consistency: 'strong' });
-const keyFor = (date: string) => `day/${date}`;
-const DAY_PREFIX = 'day/';
 
 const xmlEscape = (s: string) =>
   s
@@ -112,41 +102,108 @@ function candidateUrls(req: Request): string[] {
 
 /** Every hold we know about, newest first. Small by construction: one document per day. */
 async function allHolds(): Promise<{ date: string; hold: Hold }[]> {
-  const { blobs } = await store().list({ prefix: DAY_PREFIX });
+  const dates = await listDayKeys();
   const found: { date: string; hold: Hold }[] = [];
-  for (const blob of blobs) {
-    const date = blob.key.slice(DAY_PREFIX.length);
+  for (const date of dates) {
     const { day } = await readDay(date);
     for (const hold of day.holds) found.push({ date, hold });
   }
   return found.sort((a, b) => Date.parse(b.hold.createdAt) - Date.parse(a.hold.createdAt));
 }
 
-type WriteResult = 'ok' | 'gone' | 'race';
+/**
+ * Same treatment book.mts gives anything a customer typed, for the same
+ * reason: this text is on its way into an SMS, and a name carrying newlines
+ * or bidi marks can make a message render as something nobody wrote.
+ */
+function sanitiseForSms(value: unknown, maxLength: number): string {
+  return String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/g, ' ')
+    .replace(/\bCCP-\d+-\d+\b/gi, '[reference removed]')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLength);
+}
 
 /**
- * Flip one hold's status, conditional on the day not having changed since we
- * read it. Same reasoning as takeHold: an expiry sweep or a second booking
- * landing between the read and the write would otherwise be silently undone.
+ * Twilio will not dial "(253) 555 0199". A customer types a number the way
+ * they say it out loud, so assume North America when the country code is
+ * missing rather than dropping the message.
  */
-async function setHoldStatus(date: string, ref: string, status: Hold['status']): Promise<WriteResult> {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const { day, etag } = await readDay(date);
-    if (!day.holds.some((h) => h.ref === ref)) return 'gone';
+function toE164(raw: string): string | null {
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, '');
+  if (trimmed.startsWith('+') && digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (digits.length >= 11 && digits.length <= 15) return `+${digits}`;
+  return null;
+}
 
-    const next: Day = {
-      date,
-      holds: day.holds.map((h) => (h.ref === ref ? { ...h, status } : h)),
-    };
+/**
+ * Text the customer over the Twilio REST API, same one form encoded POST that
+ * book.mts uses to reach the owner. No SDK.
+ *
+ * Nothing in here throws and nothing it returns changes the outcome of the
+ * confirmation. The owner has already replied and the status has already been
+ * written, so a missing credential or a carrier rejection is a message that
+ * did not land, not a booking that did not happen. Missing credentials is the
+ * normal state in a preview deploy and must stay boring.
+ */
+async function notifyCustomer(toRaw: string, body: string, ref: string): Promise<void> {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM_NUMBER;
 
-    const written = await store().setJSON(
-      keyFor(date),
-      next,
-      etag ? { onlyIfMatch: etag } : { onlyIfNew: true }
-    );
-    if (written.modified) return 'ok';
+  if (!sid || !token || !from) {
+    console.log(`[confirm] ${ref}: customer SMS skipped, Twilio is not configured in this environment.`);
+    return;
   }
-  return 'race';
+
+  const to = toE164(toRaw);
+  if (!to) {
+    console.log(`[confirm] ${ref}: customer SMS skipped, no dialable number on the hold.`);
+    return;
+  }
+
+  try {
+    const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(sid)}/Messages.json`, {
+      method: 'POST',
+      headers: {
+        authorization: `Basic ${Buffer.from(`${sid}:${token}`).toString('base64')}`,
+        'content-type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
+      // Twilio expects its webhook answered promptly, so this waits on nobody.
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (!response.ok) {
+      console.log(`[confirm] ${ref}: customer SMS not accepted, Twilio returned ${response.status}.`);
+      return;
+    }
+    console.log(`[confirm] ${ref}: customer SMS sent.`);
+  } catch {
+    console.log(`[confirm] ${ref}: customer SMS failed to send.`);
+  }
+}
+
+/**
+ * What the customer reads. Everything load-bearing comes from our own
+ * schedule; the only customer-authored thing in it is their own first name,
+ * and that has been through sanitiseForSms twice by now.
+ */
+function customerMessage(date: string, hold: Hold, decision: Hold['status']): string {
+  const parsed = parseBusinessDate(date);
+  const when = `${parsed ? `${WEEKDAY[parsed.weekday]} ` : ''}${date}, ${formatSlot(hold.slot)}`;
+  const greeting = sanitiseForSms(hold.customerName, 40).split(' ')[0] ?? '';
+  const opener = greeting ? `${greeting}, ` : '';
+
+  return decision === 'confirmed'
+    ? `${opener}your appointment with ${BUSINESS.name} is confirmed. ${when}. Job: ${hold.service}. Reference ${hold.ref}. ` +
+        `Call ${BUSINESS.phone} if anything changes.`
+    : `${opener}${BUSINESS.name} could not confirm that window, so nothing is booked. ${when} is back on the board for someone else. ` +
+        `Reference ${hold.ref}. Pick another time and we will get you in, or call ${BUSINESS.phone}.`;
 }
 
 function describe(date: string, hold: Hold): string {
@@ -235,15 +292,24 @@ export default async (req: Request, _context: Context) => {
 
   const written = await setHoldStatus(target.date, target.hold.ref, decision);
 
-  if (written === 'gone') {
+  if (!written.ok && written.reason === 'HOLD_NOT_FOUND') {
     return twiml(`${target.hold.ref} is no longer on the schedule. Nothing changed.`, 'HOLD_NOT_FOUND');
   }
-  if (written === 'race') {
+  if (!written.ok) {
     return twiml(
       `The schedule was busy and ${target.hold.ref} did not change. Send the same reply again.`,
       'WRITE_RACE'
     );
   }
+
+  // The decision is already durable. Closing the loop with the customer is the
+  // last beat and the one everybody forgets, but it is not allowed to undo it,
+  // so this is awaited for the log line and its result is deliberately ignored.
+  await notifyCustomer(
+    written.hold.customerPhone ?? '',
+    customerMessage(target.date, written.hold, decision),
+    written.hold.ref
+  );
 
   const summary = describe(target.date, target.hold);
   return decision === 'confirmed'

@@ -1,73 +1,176 @@
 ---
 /**
- * Contact page with Netlify Forms.
- * The hidden form definition lives in Layout.astro for build-time detection.
- * This is the user-facing interactive form.
+ * Contact page. This is where the site uses the WebMCP DECLARATIVE API.
  *
- * Honeypot field (bot-field) is visually hidden. Bots fill it, humans don't.
- * form-name in the body tells Netlify which form definition to match.
+ * Every other tool on this site is registered imperatively in
+ * src/components/WebMCP.astro. This one is not registered in JavaScript at
+ * all. The form below carries `toolname` and `tooldescription`, and the
+ * browser synthesises the JSON Schema from the fields themselves. Using both
+ * APIs is deliberate: the declarative one is the right shape for a plain,
+ * self-contained form, and reaching for JavaScript here would be work that
+ * buys nothing.
+ *
+ * Verified against https://developer.chrome.com/docs/ai/webmcp/declarative-api
+ * on 2026-08-25. `toolname` and `tooldescription` go on the form, both are
+ * required, and removing either unregisters the tool. `toolparamdescription`
+ * on an individual field maps to that property's description in the schema,
+ * and without it the browser falls back to the associated <label> text and
+ * then to `aria-description`. A field marked `required` lands in the schema's
+ * `required` array, so the existing HTML validation is the tool contract.
+ *
+ * `toolautosubmit` is deliberately ABSENT. Chrome's own guidance says to omit
+ * it for high-impact user communication, meaning anything that sends a message
+ * to a real person, and a message to the owner of a three-person shop is
+ * exactly that. Without it the browser fills the fields, focuses the form and
+ * stops at the submit button so the customer reads what was written before it
+ * goes. That is also why this stays a plain Netlify Forms POST rather than a
+ * JavaScript submission: the human path is untouched.
+ *
+ * The honeypot (bot-field) is visually hidden. Bots fill it, humans don't, and
+ * its toolparamdescription tells an agent not to either. form-name in the body
+ * tells Netlify which form definition to match, and the hidden definition it
+ * matches against lives in Layout.astro for build-time detection.
  */
 import Layout from '@layouts/Layout.astro';
 import { getEntry } from 'astro:content';
+import { BUSINESS, HOURS } from '@lib/business';
 
 const settings = await getEntry('settings', 'site');
 const { siteName } = settings.data;
+
+const telHref = `tel:+1${BUSINESS.phone.replace(/\D/g, '')}`;
 ---
 
 <Layout title={`Contact | ${siteName}`}>
   <section class="page-header">
     <div class="container">
-      <h1>Contact Us</h1>
-      <p>We'd love to hear from you.</p>
+      <span class="eyebrow">Contact</span>
+      <h1>Send the shop a message</h1>
+      <p class="lede">
+        {BUSINESS.owner} reads these between jobs, so an answer usually comes the same day rather than the same minute. If you want a time on the calendar instead of a reply, book an appointment and the slot is held straight away.
+      </p>
     </div>
   </section>
 
   <section class="page-content">
     <div class="container contact-grid">
-      <form
-        name="contact"
-        method="POST"
-        data-netlify="true"
-        netlify-honeypot="bot-field"
-        action="/thank-you/"
-        class="contact-form"
-      >
-        <input type="hidden" name="form-name" value="contact" />
-
-        {/* Honeypot, hidden from real users */}
-        <p class="sr-only">
-          <label>Don't fill this out: <input name="bot-field" /></label>
-        </p>
-
-        <div class="form-group">
-          <label for="name">Name</label>
-          <input type="text" id="name" name="name" required autocomplete="name" />
+      <div class="form-column">
+        <div class="agent-note">
+          <span class="badge badge-accent">Using an AI assistant?</span>
+          <p>
+            This form is annotated so an assistant reading the page can fill it in for you. Tell it what is wrong and it puts your details in the boxes.
+          </p>
+          <p>
+            It cannot press Send. That is on purpose: you read what it wrote, then you send it. If you would rather have a booked window than a message, ask it to check availability instead and it will use the scheduling tools on this site.
+          </p>
         </div>
 
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input type="email" id="email" name="email" required autocomplete="email" />
-        </div>
+        <form
+          name="contact"
+          method="POST"
+          data-netlify="true"
+          netlify-honeypot="bot-field"
+          action="/thank-you/"
+          class="contact-form"
+          toolname="send_message"
+          tooldescription="Send a written message to Clarks Creek Plumbing for anything that is not a booking: a question about a job, a request for a callback, or a description of a problem the customer wants looked at before committing to a time. This does NOT reserve an appointment and does NOT hold a slot, so use book_appointment when the customer wants a window on the calendar. Fill the fields from what the customer actually told you. The browser stops at the submit button, so the customer reads the message and sends it themselves."
+        >
+          <input
+            type="hidden"
+            name="form-name"
+            value="contact"
+            toolparamdescription="Leave this exactly as it is. It routes the message to the right inbox, and any other value means the message is never delivered."
+          />
 
-        <div class="form-group">
-          <label for="phone">Phone <span class="optional">(optional)</span></label>
-          <input type="tel" id="phone" name="phone" autocomplete="tel" />
-        </div>
+          {/* Honeypot, hidden from real users and waved off for agents */}
+          <p class="sr-only">
+            <label>
+              Do not fill this out:
+              <input
+                name="bot-field"
+                toolparamdescription="Leave this empty. It is a spam trap, and anything written here causes the message to be discarded silently."
+              />
+            </label>
+          </p>
 
-        <div class="form-group">
-          <label for="message">Message</label>
-          <textarea id="message" name="message" rows="5" required></textarea>
-        </div>
+          <div class="form-group">
+            <label for="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              required
+              autocomplete="name"
+              toolparamdescription="The customer's full name, as they would want the plumber to address them."
+            />
+          </div>
 
-        <button type="submit" class="btn btn-primary" data-testid="button-contact-submit">
-          Send Message
-        </button>
-      </form>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              autocomplete="email"
+              toolparamdescription="An email address the shop can reply to. Ask the customer for it rather than guessing it or reusing one from elsewhere in the conversation."
+            />
+          </div>
 
-      <div class="contact-info">
-        <h3>Other Ways to Reach Us</h3>
-        <p>REPLACE_ME - add phone, email, address, hours, or a map embed here.</p>
+          <div class="form-group">
+            <label for="phone">Phone <span class="optional">(optional)</span></label>
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              autocomplete="tel"
+              toolparamdescription="A phone number, optional. Include it when the customer would rather be called or texted back than emailed, and leave it out when they did not give one."
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="message">Message</label>
+            <textarea
+              id="message"
+              name="message"
+              rows="5"
+              required
+              toolparamdescription="What the customer needs, in their own words. Say which town they are in, what is wrong, and anything the plumber would want to know before calling back, such as how old the fixture is or whether water is running right now. Do not invent detail the customer did not give you."
+            ></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" data-testid="button-contact-submit">
+            Send Message
+          </button>
+        </form>
       </div>
+
+      <aside class="contact-info">
+        <h2>Other ways to reach us</h2>
+        <dl>
+          <dt>Phone</dt>
+          <dd><a href={telHref}>{BUSINESS.phone}</a></dd>
+
+          <dt>Hours</dt>
+          <dd>
+            {HOURS.display.weekdays}<br />
+            {HOURS.display.saturday}<br />
+            Sunday: {HOURS.display.sunday.toLowerCase()}
+          </dd>
+
+          <dt>Where we are</dt>
+          <dd>
+            Based in {BUSINESS.base}. Two vans and no storefront, so there is nowhere to walk into. We come to you, anywhere in the service area.
+          </dd>
+
+          <dt>Emergencies</dt>
+          <dd>{HOURS.emergency}</dd>
+        </dl>
+
+        <p class="side-note">
+          {BUSINESS.name} is a demonstration business built for the WebMCP challenge. The tools on this site are real and working. The plumber is not, and that phone number sits in the 555 range that exists so fiction does not ring a stranger's house.
+        </p>
+      </aside>
     </div>
   </section>
 </Layout>
@@ -76,13 +179,12 @@ const { siteName } = settings.data;
   .page-header {
     padding: var(--space-3xl) 0 var(--space-xl);
     background: var(--color-gray-50);
-    text-align: center;
+    border-bottom: 1px solid var(--color-gray-200);
   }
 
-  .page-header p {
-    color: var(--color-gray-500);
-    font-size: 1.125rem;
-    margin-top: var(--space-sm);
+  .page-header .lede {
+    margin-top: var(--space-md);
+    max-width: 58ch;
   }
 
   .page-content {
@@ -91,16 +193,31 @@ const { siteName } = settings.data;
 
   .contact-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1.15fr 0.85fr;
     gap: var(--space-3xl);
-    max-width: 900px;
-    margin: 0 auto;
+    align-items: start;
   }
 
   @media (max-width: 768px) {
     .contact-grid {
       grid-template-columns: 1fr;
+      gap: var(--space-2xl);
     }
+  }
+
+  /* The note that explains the declarative tool to a human reader. */
+  .agent-note {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    background: var(--color-primary-tint);
+    border: 1px solid var(--color-primary-line);
+    border-radius: var(--radius-lg);
+  }
+
+  .agent-note p {
+    margin-top: var(--space-sm);
+    font-size: 0.9375rem;
+    color: var(--color-gray-700);
   }
 
   .form-group {
@@ -138,7 +255,69 @@ const { siteName } = settings.data;
     border-color: var(--color-primary);
   }
 
-  .contact-info h3 {
-    margin-bottom: var(--space-md);
+  .contact-info {
+    padding: var(--space-xl);
+    background: var(--color-gray-50);
+    border: 1px solid var(--color-gray-200);
+    border-radius: var(--radius-lg);
+  }
+
+  .contact-info h2 {
+    font-size: 1.125rem;
+    margin-bottom: var(--space-lg);
+  }
+
+  .contact-info dt {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-gray-500);
+  }
+
+  .contact-info dd {
+    margin: var(--space-xs) 0 var(--space-lg);
+    color: var(--color-gray-700);
+    font-size: 0.9375rem;
+  }
+
+  .contact-info dd:last-of-type {
+    margin-bottom: 0;
+  }
+
+  .side-note {
+    margin-top: var(--space-lg);
+    padding-top: var(--space-lg);
+    border-top: 1px solid var(--color-gray-200);
+    font-size: 0.8125rem;
+    color: var(--color-gray-500);
+  }
+</style>
+
+<style is:global>
+  /*
+   * Agent feedback, using the declarative API's own pseudo-classes.
+   * :tool-form-active is set on the form while an agent is filling it in, and
+   * :tool-submit-active is set on the submit button when the browser has
+   * stopped and is waiting for the customer to review and send. Because
+   * toolautosubmit is omitted, that pause is the normal path here rather than
+   * an edge case, so it is worth pointing at.
+   *
+   * Colour and outline only. No motion and no transform, so there is nothing
+   * for prefers-reduced-motion to fall back from. Browsers without WebMCP drop
+   * these rules as unknown selectors and the form looks exactly as it does now.
+   * Global rather than scoped because Astro rewrites scoped selectors and
+   * these need to reach the live pseudo-class untouched.
+   */
+  .contact-form:tool-form-active {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 0.75rem;
+    border-radius: var(--radius-md);
+  }
+
+  .contact-form button:tool-submit-active {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+    background: var(--color-accent-dark);
   }
 </style>

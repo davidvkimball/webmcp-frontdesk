@@ -1,0 +1,54 @@
+---
+/**
+ * Where the contact form lands after a human submits it. The form has posted
+ * to /thank-you/ since the starter, so this page has to exist or every real
+ * submission ends on a 404.
+ */
+import Layout from '@layouts/Layout.astro';
+import { BUSINESS, HOURS } from '@lib/business';
+---
+
+<Layout title={`Message received | ${BUSINESS.name}`} noIndex={true}>
+  <section class="thanks">
+    <div class="container container-narrow">
+      <span class="eyebrow">Message received</span>
+      <h1>Thanks, we have got it.</h1>
+      <p class="lede">
+        {BUSINESS.owner} reads these himself between jobs, so a reply usually comes the same day during working hours rather than the same minute.
+      </p>
+
+      <div class="card">
+        <h2>If it cannot wait</h2>
+        <p>{HOURS.emergency}</p>
+        <p>
+          For an actual emergency, call rather than wait on the form.
+          <a href="tel:+12535550142" class="btn btn-accent" data-testid="button-thanks-call">Call {BUSINESS.phone}</a>
+        </p>
+      </div>
+
+      <p class="back"><a href="/">Back to the home page</a></p>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .thanks {
+    padding-block: var(--space-3xl, 4rem);
+  }
+
+  .thanks h1 {
+    margin-block: var(--space-sm, 0.5rem) var(--space-md, 1rem);
+  }
+
+  .card {
+    margin-block: var(--space-xl, 2rem);
+  }
+
+  .card .btn {
+    margin-top: var(--space-md, 1rem);
+  }
+
+  .back {
+    margin-top: var(--space-xl, 2rem);
+  }
+</style>

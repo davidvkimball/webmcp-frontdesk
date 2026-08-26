@@ -55,6 +55,13 @@ Run the `web-signature` skill (`lilagents-team/web-signature`) before submission
 - No secrets committed, ever. The repo is public
 - Commit messages: plain, no AI attribution, no em dashes
 
+## Build and deploy traps
+
+- **Never delete the whole `.netlify` directory.** It holds `state.json`, which is the link to the Netlify project. Deleting it silently unlinks the repo, and the next `netlify deploy` creates a **brand new site** and deploys there instead. This has already happened once. To clear a build collision delete `dist` and `.netlify/v1` only, never the parent.
+- **Relink with the project ID, not the name:** `netlify link --id 1f760a1f-130b-43c6-87ec-b29b0bdc78cd`. If it says "already linked" to the wrong project, run `netlify unlink` first, because link is a no-op when a link already exists.
+- **New functions need `--skip-functions-cache`.** Netlify reuses a cached function bundle, so a newly added function silently never registers its path and every call falls through to the catch-all 404.
+- **Parallel agents must not run `pnpm run build` at the same time.** Concurrent builds collide on `dist` and `.netlify/v1` with EEXIST or ENOENT on the SSR entry. Give one agent the build, or stagger them.
+
 ## Working style
 
 Verify before claiming. If a tool works, show the call and its output. If the site is live, load it. Never describe something as done because the code looks right, because the failure modes here are all runtime and browser-specific.
