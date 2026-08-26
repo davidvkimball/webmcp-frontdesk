@@ -24,7 +24,7 @@
 import type { Config, Context } from '@netlify/functions';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { BUSINESS, formatSlot, parseBusinessDate } from '../../src/lib/business';
-import { isLive, listDayKeys, readDay, setHoldStatus, type Hold } from '../../src/lib/schedule';
+import { findHold, isLive, listDayKeys, readDay, setHoldStatus, type Hold } from '../../src/lib/schedule';
 
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -219,7 +219,116 @@ function describe(date: string, hold: Hold): string {
   return `${hold.ref}, ${hold.service}, ${weekday}${date}, ${formatSlot(hold.slot)}`;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Telegram                                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Telegram delivers updates as JSON to the same webhook slot Twilio uses with
+ * form encoding, so both live behind this one path. Twilio trial accounts
+ * cannot send a custom message body at all (572006 on SMS, 21654 on
+ * WhatsApp), which makes Telegram the only channel that actually closes the
+ * loop without paying, so it is the one in use.
+ */
+async function telegramSay(text: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chat = process.env.OWNER_TELEGRAM_CHAT_ID;
+  if (!token || !chat) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text, disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    // A failed acknowledgement must never fail the confirmation itself.
+  }
+}
+
+const tgDone = (reason: string) =>
+  new Response(JSON.stringify({ ok: true, reason }), {
+    status: 200,
+    headers: { 'content-type': 'application/json', 'x-frontdesk-reason': reason },
+  });
+
+/** The most recent hold still waiting on the owner, across every stored day. */
+async function newestPendingHold() {
+  for (const date of await listDayKeys()) {
+    const { day } = await readDay(date);
+    const held = day.holds
+      .filter((h) => h.status === 'held' && isLive(h))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+    if (held) return { hold: held, date };
+  }
+  return null;
+}
+
+async function handleTelegram(req: Request): Promise<Response> {
+  const update = (await req.json().catch(() => null)) as any;
+  const message = update?.message ?? update?.edited_message;
+  const text = String(message?.text ?? '').trim();
+  const chatId = String(message?.chat?.id ?? '');
+  if (!text || !chatId) return tgDone('UNREADABLE_UPDATE');
+
+  // A chat id inside a POST body proves nothing, so it is checked against the
+  // configured owner rather than trusted.
+  const owner = process.env.OWNER_TELEGRAM_CHAT_ID;
+  if (!owner) return tgDone('NOT_CONFIGURED');
+  if (chatId !== owner) return tgDone('UNAUTHORISED_SENDER');
+
+  const word = text.toUpperCase().replace(/[^A-Z]/g, '');
+  const yes = word.startsWith('YES');
+  const no = word.startsWith('NO');
+
+  // A quoted reference beats "the latest", so a backlog can be answered out of order.
+  const quoted = text.match(/CCP-\d+-\d+/i)?.[0];
+  const target = quoted ? await findHold(quoted) : await newestPendingHold();
+
+  if (!yes && !no) {
+    await telegramSay(
+      target
+        ? `Reply YES to confirm ${target.hold.ref} for ${formatSlot(target.hold.slot)} on ${target.date}, or NO to decline it.`
+        : 'Nothing is waiting on you right now.'
+    );
+    return tgDone('NO_KEYWORD');
+  }
+  if (!target) {
+    await telegramSay('There is no booking waiting on you right now.');
+    return tgDone('NO_PENDING_HOLD');
+  }
+
+  const { hold, date } = target;
+  if (hold.status !== 'held') {
+    await telegramSay(`${hold.ref} was already ${hold.status}. Nothing changed.`);
+    return tgDone('ALREADY_RESOLVED');
+  }
+  if (!isLive(hold)) {
+    await telegramSay(`${hold.ref} expired before you replied, so that window is open again.`);
+    return tgDone('HOLD_EXPIRED');
+  }
+
+  const result = await setHoldStatus(date, hold.ref, yes ? 'confirmed' : 'declined');
+  if (!result.ok) {
+    await telegramSay('The schedule changed underneath that one. Try again.');
+    return tgDone(result.reason);
+  }
+
+  await telegramSay(
+    yes
+      ? `Confirmed. ${formatSlot(hold.slot)} on ${date} is on the board.`
+      : `Declined. ${formatSlot(hold.slot)} on ${date} is open again.`
+  );
+  return tgDone(yes ? 'CONFIRMED' : 'DECLINED');
+}
+
 export default async (req: Request, _context: Context) => {
+  // Telegram posts JSON; Twilio posts form encoding. One path, two channels.
+  if ((req.headers.get('content-type') ?? '').includes('application/json')) {
+    return handleTelegram(req);
+  }
+
   if (req.method !== 'POST') {
     return twiml(null, 'METHOD_NOT_ALLOWED', 405);
   }

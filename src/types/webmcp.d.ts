@@ -18,7 +18,8 @@ interface WebMCPToolDefinition {
   inputSchema: Record<string, unknown>;
   annotations?: WebMCPToolAnnotations;
   /** Must resolve to a string. Structured data has to be stringified. */
-  execute: (params: any, options: { signal: AbortSignal }) => Promise<string>;
+  /** The options object is not guaranteed: executeTool() omits it entirely. */
+  execute: (params: any, options?: { signal?: AbortSignal }) => Promise<string>;
 }
 
 interface ModelContext {

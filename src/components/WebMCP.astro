@@ -131,7 +131,7 @@
   /** Conversation lifecycle. Aborted when the hold stops being pending. */
   let holdController: AbortController | null = null;
 
-  async function call(endpoint: string, params: unknown, signal: AbortSignal): Promise<string> {
+  async function call(endpoint: string, params: unknown, signal?: AbortSignal): Promise<string> {
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -156,8 +156,8 @@
           // should have shown, which is a lie with consequences.
           readOnlyHint: spec.readOnly,
         },
-        execute: async (params, { signal: callSignal }) => {
-          const raw = await call(spec.endpoint, params, callSignal);
+        execute: async (params, options) => {
+          const raw = await call(spec.endpoint, params, options?.signal);
           if (spec.onResult) {
             try {
               spec.onResult(JSON.parse(raw));
@@ -209,8 +209,8 @@
           required: ['reference'],
         },
         annotations: { readOnlyHint: true },
-        execute: async (params, { signal: callSignal }) => {
-          const raw = await call('/api/hold-status', { reference: params?.reference ?? reference }, callSignal);
+        execute: async (params, options) => {
+          const raw = await call('/api/hold-status', { reference: params?.reference ?? reference }, options?.signal);
           try {
             closeIfResolved(JSON.parse(raw));
           } catch {}
@@ -237,8 +237,8 @@
         },
         // This one genuinely changes state, so no read-only claim.
         annotations: { readOnlyHint: false },
-        execute: async (params, { signal: callSignal }) => {
-          const raw = await call('/api/cancel-hold', { reference: params?.reference ?? reference }, callSignal);
+        execute: async (params, options) => {
+          const raw = await call('/api/cancel-hold', { reference: params?.reference ?? reference }, options?.signal);
           try {
             const parsed = JSON.parse(raw);
             if (parsed?.ok) closeHoldTools();

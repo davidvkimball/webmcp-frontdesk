@@ -117,6 +117,32 @@ type Notification =
  * system; the SMS is how the owner hears about it.
  */
 async function notifyOwner(body: string): Promise<Notification> {
+  // Telegram first when it is configured. Twilio trial accounts refuse any
+  // custom message body (error 572006 on SMS, 21654 on WhatsApp), which makes
+  // them useless for a real notification without paying. Telegram has no
+  // carrier, no templates and no tier restriction.
+  const tgToken = process.env.TELEGRAM_BOT_TOKEN;
+  const tgChat = process.env.OWNER_TELEGRAM_CHAT_ID;
+  if (tgToken && tgChat) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${tgToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chat_id: tgChat, text: body, disable_web_page_preview: true }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) return { sent: true };
+      const err = (await res.json().catch(() => null)) as { description?: string } | null;
+      return {
+        sent: false,
+        reason: 'SEND_FAILED',
+        detail: `Telegram returned ${res.status}${err?.description ? `: ${err.description}` : ''}.`,
+      };
+    } catch {
+      return { sent: false, reason: 'SEND_FAILED', detail: 'The owner notification could not be sent.' };
+    }
+  }
+
   const sid = process.env.TWILIO_ACCOUNT_SID;
   const token = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_FROM_NUMBER;
