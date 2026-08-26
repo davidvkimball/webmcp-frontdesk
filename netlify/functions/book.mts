@@ -143,7 +143,18 @@ async function notifyOwner(body: string): Promise<Notification> {
     });
 
     if (!response.ok) {
-      return { sent: false, reason: 'SEND_FAILED', detail: `Twilio returned ${response.status}.` };
+      // Surface Twilio's own error code and message. Without it a 400 is
+      // unactionable, and the usual causes (sandbox not joined, wrong sender)
+      // are indistinguishable. Twilio's error body carries no credentials.
+      let detail = `Twilio returned ${response.status}.`;
+      try {
+        const err = (await response.json()) as { code?: number; message?: string };
+        if (err?.code) detail = `Twilio ${response.status} code ${err.code}: ${err.message ?? 'no message'}`;
+      } catch {
+        // Non-JSON error body. The status alone will have to do.
+      }
+      console.log(`[book] owner notify failed. ${detail}`);
+      return { sent: false, reason: 'SEND_FAILED', detail };
     }
     return { sent: true };
   } catch {
