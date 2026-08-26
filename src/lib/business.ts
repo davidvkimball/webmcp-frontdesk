@@ -6,7 +6,8 @@
  * WebMCP tools, so a fact can only be wrong in one place at a time.
  *
  * Clarks Creek Plumbing is a fictional demonstration business built for the
- * WebMCP challenge. The tools are real. The plumber is not.
+ * WebMCP challenge. The tools are real and meant to be used. Nobody is
+ * dispatched.
  */
 
 export const BUSINESS = {
@@ -18,7 +19,7 @@ export const BUSINESS = {
   crew: 3,
   fictional: true,
   disclosure:
-    'Clarks Creek Plumbing is a fictional demonstration business built for the WebMCP challenge. No real plumbing services are offered and no real customer data is used.',
+    'Clarks Creek Plumbing is a demonstration business built for the WebMCP challenge. The booking tools are real and meant to be used: holds, confirmations and the schedule all genuinely work. Nobody is dispatched to the address.',
   license: {
     number: 'DEMO-WA-0000000',
     state: 'WA',
