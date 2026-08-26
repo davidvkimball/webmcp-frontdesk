@@ -66,4 +66,4 @@ Run the `web-signature` skill (`lilagents-team/web-signature`) before submission
 
 Verify before claiming. If a tool works, show the call and its output. If the site is live, load it. Never describe something as done because the code looks right, because the failure modes here are all runtime and browser-specific.
 
-When something in PLAN.md turns out to be wrong, fix the plan rather than working around it silently.
+When something in BUSINESS.md turns out to be wrong, fix it there rather than working around it silently.
