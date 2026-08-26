@@ -1,8 +1,8 @@
 ---
 /**
  * Layout: wraps every page.
- * Includes: BaseHead, Header, Footer, hidden Netlify form defs,
- * universal CTA click tracker.
+ * Includes: BaseHead, Header, Footer, the WebMCP tool registrations,
+ * and the hidden Netlify form definition.
  */
 import BaseHead from '@components/BaseHead.astro';
 import Header from '@components/Header.astro';
@@ -50,51 +50,5 @@ const props = Astro.props;
     <Footer />
 
 
-    {/*
-      Universal CTA click tracker.
-      Fires GA4 generate_lead on any element with a data-testid
-      attribute starting with "button-". Placement is derived from
-      the testid (e.g. button-hero-cta → "hero").
-
-      This works out of the box with the starter's existing buttons.
-      When building a real site, either repurpose this to track the
-      actual CTAs, or remove it if not needed.
-    */}
-    <script is:inline>
-      (function() {
-        document.addEventListener('click', function(e) {
-          var el = e.target.closest('[data-testid^="button-"]');
-          if (!el) return;
-
-          var testId = el.getAttribute('data-testid') || '';
-          var parts = testId.replace('button-', '').split('-');
-          var placement = parts[0] || 'unknown';
-          var page = window.location.pathname;
-
-          // GA4: generate_lead
-          if (typeof gtag === 'function') {
-            gtag('event', 'generate_lead', {
-              event_category: 'cta',
-              event_label: placement,
-              page_location: page,
-              link_url: el.href || '',
-              button_text: (el.textContent || '').trim(),
-              value: 0,
-              currency: 'USD'
-            });
-          }
-
-          // Meta Pixel: Lead (uncomment when pixel is installed)
-          // if (typeof fbq === 'function') {
-          //   fbq('track', 'Lead', {
-          //     content_name: 'cta_click',
-          //     content_category: placement,
-          //     value: 0,
-          //     currency: 'USD'
-          //   });
-          // }
-        });
-      })();
-    </script>
   </body>
 </html>

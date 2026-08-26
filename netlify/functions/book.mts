@@ -274,7 +274,7 @@ export default async (req: Request, _context: Context) => {
   // Atomic, and conditional on the day not having changed since we read it.
   // Two agents racing for the last window is not a hypothetical: it is what
   // happens when a slot has been sitting in a chat transcript for a while.
-  const held = await takeHold(date, slot, { service: service.label, customerName: sanitiseForSms(name, 60) });
+  const held = await takeHold(date, slot, { service: service.label, customerName: sanitiseForSms(name, 60), customerPhone: sanitiseForSms(phone, 24) });
 
   if (!held.ok && held.reason === 'SLOT_TAKEN') {
     const stillOpen = candidates.filter((start) => start !== slot);

@@ -25,6 +25,8 @@ export type Hold = {
   service: string;
   status: 'held' | 'confirmed' | 'declined';
   customerName: string;
+  /** Needed so the confirm webhook can text the customer back. Never returned by a tool. */
+  customerPhone: string;
   createdAt: string;
   expiresAt: string;
 };
@@ -66,7 +68,7 @@ export type HoldResult =
 export async function takeHold(
   date: string,
   slot: string,
-  details: { service: string; customerName: string }
+  details: { service: string; customerName: string; customerPhone: string }
 ): Promise<HoldResult> {
   for (let attempt = 0; attempt < 3; attempt++) {
     const { day, etag } = await readDay(date);
@@ -82,6 +84,7 @@ export async function takeHold(
       service: details.service,
       status: 'held',
       customerName: details.customerName,
+      customerPhone: details.customerPhone,
       createdAt: new Date(now).toISOString(),
       expiresAt: new Date(now + HOLD_TTL_MINUTES * 60_000).toISOString(),
     };
@@ -108,4 +111,38 @@ function reference(date: string, slot: string, salt: number): string {
   const compact = date.replace(/-/g, '').slice(4) + slot.replace(':', '');
   const noise = Math.floor(Date.now() % 997) + salt;
   return `CCP-${compact}-${String(noise).padStart(3, '0')}`;
+}
+
+/**
+ * Flip a hold's status, conditional on the day not having changed. Lives here
+ * rather than in the webhook so that the `day/` key scheme and the Blobs store
+ * name exist in exactly one file.
+ */
+export async function setHoldStatus(
+  date: string,
+  ref: string,
+  status: Hold['status']
+): Promise<{ ok: true; hold: Hold } | { ok: false; reason: 'HOLD_NOT_FOUND' | 'WRITE_RACE' }> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { day, etag } = await readDay(date);
+    const target = day.holds.find((h) => h.ref === ref);
+    if (!target) return { ok: false, reason: 'HOLD_NOT_FOUND' };
+
+    const updated: Hold = { ...target, status };
+    const next: Day = { date, holds: day.holds.map((h) => (h.ref === ref ? updated : h)) };
+
+    const written = await store().setJSON(
+      keyFor(date),
+      next,
+      etag ? { onlyIfMatch: etag } : { onlyIfNew: true }
+    );
+    if (written.modified) return { ok: true, hold: updated };
+  }
+  return { ok: false, reason: 'WRITE_RACE' };
+}
+
+/** Every day key currently in the store, newest first. */
+export async function listDayKeys(): Promise<string[]> {
+  const { blobs } = await store().list({ prefix: 'day/' });
+  return blobs.map((b) => b.key.slice('day/'.length)).sort().reverse();
 }
