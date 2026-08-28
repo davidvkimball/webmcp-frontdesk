@@ -63,7 +63,7 @@ const { siteName } = settings.data;
         <div class="dsp-live">
           <span class="dsp-dot" aria-hidden="true"></span>
           <span>
-            Updated <span class="dsp-age" id="dsp-age">..</span> ago, polling every 2 seconds
+            Updated <span class="dsp-age" id="dsp-age">..</span> ago, polling every 2 seconds while active
             <span class="dsp-clock" id="dsp-clock">Waiting for the first read</span>
           </span>
         </div>
@@ -159,7 +159,21 @@ const { siteName } = settings.data;
     days: BoardDay[];
   };
 
-  const POLL_MS = 2000;
+  /**
+   * Polling costs real money on a serverless plan. At 2 seconds a single
+   * forgotten tab is 43,200 function calls a day, which is the whole monthly
+   * free allowance in under three days, and an exhausted allowance means the
+   * tools stop answering for everyone.
+   *
+   * So: full speed while somebody is actually watching, slower once the board
+   * has been quiet for a while, and nothing at all while the tab is hidden.
+   */
+  let onBoardChange: (() => void) | undefined;
+
+  const POLL_FAST_MS = 2000;
+  const POLL_IDLE_MS = 10000;
+  /** Drop to the idle rate after this long with no change on the board. */
+  const QUIET_BEFORE_IDLE_MS = 120000;
   const FLASH_MS = 2400;
   const STALE_AFTER_MS = 7000;
 
@@ -341,6 +355,9 @@ const { siteName } = settings.data;
       }
 
       if (changes.length > 0) {
+        // Something actually moved, so somebody is probably watching. Go back
+        // to full speed and restart the quiet countdown.
+        onBoardChange?.();
         if (announceEl) announceEl.textContent = changes.join('. ');
         // Take the flash back off on schedule, whether it animated or, with
         // motion reduced, sat there as a flat highlight.
@@ -377,14 +394,49 @@ const { siteName } = settings.data;
       }
     }
 
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+    let currentRate = 0;
+    let lastChangeAt = Date.now();
+
+    /** The rate this moment calls for. Zero means do not poll at all. */
+    function wantedRate(): number {
+      if (document.hidden) return 0;
+      return Date.now() - lastChangeAt > QUIET_BEFORE_IDLE_MS ? POLL_IDLE_MS : POLL_FAST_MS;
+    }
+
+    function applyRate() {
+      const want = wantedRate();
+      if (want === currentRate) return;
+      currentRate = want;
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = undefined;
+      if (!want) return;
+      // Coming back to a visible tab should repaint immediately rather than
+      // waiting out an interval, otherwise the board looks frozen.
+      poll();
+      pollTimer = setInterval(poll, want);
+    }
+
+    // Any change on the board means somebody is likely watching, so go back to
+    // full speed and start the quiet timer again.
+    onBoardChange = () => {
+      lastChangeAt = Date.now();
+      applyRate();
+    };
+
     poll();
-    const pollTimer = setInterval(poll, POLL_MS);
+    applyRate();
     const tickTimer = setInterval(tick, 1000);
+    const rateTimer = setInterval(applyRate, 5000);
+    document.addEventListener('visibilitychange', applyRate);
 
     return () => {
       stopped = true;
-      clearInterval(pollTimer);
+      onBoardChange = undefined;
+      document.removeEventListener('visibilitychange', applyRate);
+      if (pollTimer) clearInterval(pollTimer);
       clearInterval(tickTimer);
+      clearInterval(rateTimer);
       clearTimeout(clearFlashTimer);
     };
   }
